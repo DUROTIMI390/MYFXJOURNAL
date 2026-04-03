@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My FX Journal — Track Every Trade. Master Every Move.</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#f5c842;--gold-dim:#c9a227;--gold-muted:#a08c3a;--bg:#0a0a0a;--bg2:#111111;--bg3:#161200;--border:#2a2200;--text:#e2e8f0;--muted:#7a6a4a}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+
+/* NAV */
+nav{display:flex;justify-content:space-between;align-items:center;padding:1.25rem 4rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,10,0.95);backdrop-filter:blur(8px);z-index:50}
+.nav-logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:var(--gold)}
+.nav-logo span{font-size:11px;color:var(--muted);font-weight:400;display:block;margin-top:1px}
+.nav-links{display:flex;gap:2rem;font-size:13px;color:var(--muted)}
+.nav-links a:hover{color:var(--gold)}
+.nav-cta{background:var(--gold-dim);color:#0a0a0a;padding:0.55rem 1.25rem;border-radius:8px;font-size:13px;font-weight:700;transition:background 0.15s;cursor:pointer;border:none}
+.nav-cta:hover{background:var(--gold)}
+
+/* HERO */
+.hero{text-align:center;padding:6rem 2rem 4rem;max-width:900px;margin:0 auto}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);padding:4px 14px;border-radius:99px;font-size:12px;color:var(--gold-muted);margin-bottom:2rem}
+.hero h1{font-size:56px;font-weight:800;line-height:1.1;margin-bottom:1.25rem;letter-spacing:-0.02em}
+.hero h1 span{color:var(--gold)}
+.hero p{font-size:18px;color:var(--muted);line-height:1.7;max-width:600px;margin:0 auto 2.5rem}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-hero{padding:0.85rem 2rem;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;border:none;transition:all 0.15s}
+.btn-gold{background:var(--gold-dim);color:#0a0a0a}.btn-gold:hover{background:var(--gold)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-ghost:hover{border-color:var(--gold-muted);color:var(--text)}
+.hero-img{margin:4rem auto 0;max-width:820px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;padding:1.5rem}
+
+/* STATS BAR */
+.stats-bar{display:flex;justify-content:center;gap:4rem;padding:3rem 2rem;border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.stat-item{text-align:center}
+.stat-num{font-size:36px;font-weight:800;color:var(--gold);line-height:1}
+.stat-label{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* FEATURES */
+.features{padding:6rem 2rem;max-width:1100px;margin:0 auto}
+.section-label{font-size:12px;color:var(--gold-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem}
+.section-title{font-size:36px;font-weight:800;margin-bottom:1rem;letter-spacing:-0.01em}
+.section-sub{font-size:16px;color:var(--muted);max-width:500px;line-height:1.7;margin-bottom:3rem}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feature-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.5rem;transition:border-color 0.2s}
+.feature-card:hover{border-color:var(--gold-muted)}
+.feature-icon{width:44px;height:44px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:1rem}
+.feature-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:0.5rem}
+.feature-desc{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* HOW IT WORKS */
+.how{padding:5rem 2rem;max-width:900px;margin:0 auto;text-align:center}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin-top:3rem;position:relative}
+.steps::before{content:'';position:absolute;top:28px;left:20%;right:20%;height:1px;background:var(--border)}
+.step{position:relative}
+.step-num{width:56px;height:56px;border-radius:50%;border:1px solid var(--gold-dim);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--gold);margin:0 auto 1rem;position:relative;z-index:1}
+.step-title{font-size:15px;font-weight:600;margin-bottom:0.5rem}
+.step-desc{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* CHECKLIST PREVIEW */
+.preview{padding:5rem 2rem;max-width:1000px;margin:0 auto}
+.preview-inner{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+.preview-text .section-label{margin-bottom:0.5rem}
+.preview-list{margin-top:1.5rem;display:flex;flex-direction:column;gap:10px}
+.preview-item{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.preview-item::before{content:'✓';color:var(--gold);font-weight:700;font-size:14px;flex-shrink:0}
+.preview-ui{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.5rem}
+.ui-row{display:flex;justify-content:space-between;align-items:center;padding:0.65rem 0;border-bottom:1px solid #1a1200;font-size:13px}
+.ui-row:last-child{border-bottom:none}
+.ui-label{color:var(--muted)}
+.ui-val{font-weight:600;color:var(--text)}
+.ui-val.gold{color:var(--gold)}
+.ui-val.red{color:#f87171}
+.ui-badge{padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500}
+.ub-win{background:#0d2e1f;color:#6ee7b7}.ub-loss{background:#2e0d0d;color:#f87171}.ub-buy{background:#0d2e1f;color:#6ee7b7}.ub-sell{background:#2e0d0d;color:#f87171}
+
+/* CTA */
+.cta-section{padding:6rem 2rem;text-align:center;border-top:1px solid var(--border)}
+.cta-section h2{font-size:42px;font-weight:800;margin-bottom:1rem;letter-spacing:-0.02em}
+.cta-section h2 span{color:var(--gold)}
+.cta-section p{font-size:16px;color:var(--muted);max-width:480px;margin:0 auto 2.5rem;line-height:1.7}
+.cta-free{font-size:12px;color:var(--muted);margin-top:1rem}
+
+/* FOOTER */
+footer{padding:2rem 4rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
+.footer-logo{font-size:14px;font-weight:700;color:var(--gold)}
+.footer-copy{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <svg width="26" height="26" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="7" fill="#1a1500"/><ellipse cx="9" cy="17" rx="4" ry="3" fill="#f5c842"/><circle cx="13.5" cy="14.5" r="2.5" fill="#f5c842"/><path d="M12 12.5 Q11 10 10 11" stroke="#f5c842" stroke-width="1.2" stroke-linecap="round" fill="none"/><path d="M14.5 12 Q15 10 16 10.5" stroke="#f5c842" stroke-width="1.2" stroke-linecap="round" fill="none"/><line x1="7" y1="20" x2="7" y2="23" stroke="#f5c842" stroke-width="1.2" stroke-linecap="round"/><line x1="11" y1="20" x2="11" y2="23" stroke="#f5c842" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="20" cy="17" rx="4" ry="3" fill="#a08c3a"/><circle cx="16" cy="14.5" r="2.5" fill="#a08c3a"/><circle cx="14.8" cy="12.3" r="1" fill="#a08c3a"/><circle cx="17" cy="12" r="1" fill="#a08c3a"/><line x1="18" y1="20" x2="18" y2="23" stroke="#a08c3a" stroke-width="1.2" stroke-linecap="round"/><line x1="22" y1="20" x2="22" y2="23" stroke="#a08c3a" stroke-width="1.2" stroke-linecap="round"/></svg>
+    <div>My FX Journal <span>Forex Trading Log</span></div>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#preview">Preview</a>
+  </div>
+  <button class="nav-cta" onclick="window.open('./app.html','_blank')">Launch App ↗</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🐂 Built for serious Forex traders</div>
+  <h1>Track Every Trade.<br><span>Master Every Move.</span></h1>
+  <p>My FX Journal is a free, powerful trading journal built specifically for Forex traders. Log trades, review your week, reflect on your mindset, and unlock your edge.</p>
+  <div class="hero-btns">
+    <button class="btn-hero btn-gold" onclick="document.getElementById('launch').scrollIntoView({behavior:'smooth'})">Start Journaling — Free</button>
+    <button class="btn-hero btn-ghost" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">See Features</button>
+  </div>
+
+  <!-- Mini UI Preview -->
+  <div class="hero-img">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem">
+      <div style="background:#0f0f0f;border:1px solid #2a2200;border-radius:10px;padding:0.75rem"><div style="font-size:11px;color:#7a6a4a;margin-bottom:4px">Total Trades</div><div style="font-size:22px;font-weight:700">24</div></div>
+      <div style="background:#0f0f0f;border:1px solid #2a2200;border-radius:10px;padding:0.75rem"><div style="font-size:11px;color:#7a6a4a;margin-bottom:4px">Win Rate</div><div style="font-size:22px;font-weight:700;color:#f5c842">67%</div></div>
+      <div style="background:#0f0f0f;border:1px solid #2a2200;border-radius:10px;padding:0.75rem"><div style="font-size:11px;color:#7a6a4a;margin-bottom:4px">Total P&L</div><div style="font-size:22px;font-weight:700;color:#f5c842">+$842</div></div>
+      <div style="background:#0f0f0f;border:1px solid #2a2200;border-radius:10px;padding:0.75rem"><div style="font-size:11px;color:#7a6a4a;margin-bottom:4px">Best Trade</div><div style="font-size:22px;font-weight:700;color:#f5c842">+$220</div></div>
+    </div>
+    <div style="background:#0f0f0f;border:1px solid #2a2200;border-radius:10px;padding:1rem">
+      <div style="font-size:11px;color:#7a6a4a;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Recent Trades</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <tr><td style="padding:6px 8px;color:#e2e8f0">EUR/USD</td><td style="padding:6px 8px"><span style="background:#0d2e1f;color:#6ee7b7;padding:2px 7px;border-radius:5px;font-size:11px">Buy</span></td><td style="padding:6px 8px;color:#7a6a4a">London</td><td style="padding:6px 8px;color:#f5c842;font-weight:600">+$120.00</td><td style="padding:6px 8px"><span style="background:#0d2e1f;color:#6ee7b7;padding:2px 7px;border-radius:5px;font-size:11px">Win</span></td></tr>
+        <tr><td style="padding:6px 8px;color:#e2e8f0">GBP/JPY</td><td style="padding:6px 8px"><span style="background:#2e0d0d;color:#f87171;padding:2px 7px;border-radius:5px;font-size:11px">Sell</span></td><td style="padding:6px 8px;color:#7a6a4a">New York</td><td style="padding:6px 8px;color:#f87171;font-weight:600">-$45.00</td><td style="padding:6px 8px"><span style="background:#2e0d0d;color:#f87171;padding:2px 7px;border-radius:5px;font-size:11px">Loss</span></td></tr>
+        <tr><td style="padding:6px 8px;color:#e2e8f0">XAU/USD</td><td style="padding:6px 8px"><span style="background:#0d2e1f;color:#6ee7b7;padding:2px 7px;border-radius:5px;font-size:11px">Buy</span></td><td style="padding:6px 8px;color:#7a6a4a">Asian</td><td style="padding:6px 8px;color:#f5c842;font-weight:600">+$210.00</td><td style="padding:6px 8px"><span style="background:#0d2e1f;color:#6ee7b7;padding:2px 7px;border-radius:5px;font-size:11px">Win</span></td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-num">8+</div><div class="stat-label">Modules built in</div></div>
+  <div class="stat-item"><div class="stat-num">100%</div><div class="stat-label">Free to use</div></div>
+  <div class="stat-item"><div class="stat-num">0</div><div class="stat-label">Ads or tracking</div></div>
+  <div class="stat-item"><div class="stat-num">∞</div><div class="stat-label">Trades you can log</div></div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-label">Everything you need</div>
+  <div class="section-title">Built for the disciplined trader</div>
+  <div class="section-sub">Every feature was designed around one goal — helping you become a consistently profitable Forex trader.</div>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon">📒</div><div class="feature-title">Full Trade Log</div><div class="feature-desc">Log pair, session, day, lot size, entry, exit, SL/TP, P&L, tags, emotions, and chart screenshots.</div></div>
+    <div class="feature-card"><div class="feature-icon">📊</div><div class="feature-title">Live Dashboard</div><div class="feature-desc">Cumulative P&L chart, win rate, session analytics, and pair performance — all updating live.</div></div>
+    <div class="feature-card"><div class="feature-icon">✏️</div><div class="feature-title">Editable Trades</div><div class="feature-desc">Made a mistake logging? Click any trade to edit every field — nothing is locked in.</div></div>
+    <div class="feature-card"><div class="feature-icon">📅</div><div class="feature-title">Weekly Review</div><div class="feature-desc">Structured end-of-week form covering wins, losses, rule violations, lessons, and next week's goals.</div></div>
+    <div class="feature-card"><div class="feature-icon">🧠</div><div class="feature-title">Self Reflection</div><div class="feature-desc">Mood tracker, mental focus score, and deep prompts to help you develop trader psychology.</div></div>
+    <div class="feature-card"><div class="feature-icon">⚡</div><div class="feature-title">Risk Calculator</div><div class="feature-desc">Live position size calculator. Enter balance, risk %, entry and SL to get your exact lot size and R:R.</div></div>
+    <div class="feature-card"><div class="feature-icon">✅</div><div class="feature-title">Rules Checklist</div><div class="feature-desc">14 pre-built trading rules across Pre-Trade, Risk, Post-Trade and Mindset. Add your own rules too.</div></div>
+    <div class="feature-card"><div class="feature-icon">↓</div><div class="feature-title">Export & Backup</div><div class="feature-desc">Export trades to CSV for Excel, full JSON backup, and weekly review text reports.</div></div>
+    <div class="feature-card"><div class="feature-icon">🔒</div><div class="feature-title">Private by Default</div><div class="feature-desc">No account needed. No data sent anywhere. Everything stays in your browser.</div></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="section-label" style="display:inline-block">Simple process</div>
+  <div class="section-title">Three steps to a better trader</div>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-title">Log your trades</div><div class="step-desc">Enter every trade with full detail — pair, session, setup, emotion, and screenshot.</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-title">Review every week</div><div class="step-desc">Fill in your weekly review. What worked, what didn't, what you'll change.</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-title">Master your edge</div><div class="step-desc">Your dashboard reveals patterns. Double down on what works. Cut what doesn't.</div></div>
+  </div>
+</section>
+
+<!-- PREVIEW -->
+<section class="preview" id="preview">
+  <div class="preview-inner">
+    <div class="preview-text">
+      <div class="section-label">Trade detail preview</div>
+      <div class="section-title" style="font-size:28px">Every trade. Every detail.</div>
+      <p style="font-size:14px;color:var(--muted);line-height:1.7;margin-top:0.75rem">See exactly how a trade is stored. Every field is editable at any time — just click the trade in your history.</p>
+      <div class="preview-list">
+        <div class="preview-item">Currency pair, direction and session</div>
+        <div class="preview-item">Entry, exit, stop loss and take profit</div>
+        <div class="preview-item">Lot size and P&L auto-calculated</div>
+        <div class="preview-item">Strategy tags and emotional state</div>
+        <div class="preview-item">Personal notes and chart screenshot</div>
+      </div>
+    </div>
+    <div class="preview-ui">
+      <div style="font-size:13px;font-weight:600;color:#f1f5f9;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #1a1200">GBP/USD — 2025-04-01</div>
+      <div class="ui-row"><span class="ui-label">Direction</span><span class="ui-val"><span class="ui-badge ub-buy">Buy</span></span></div>
+      <div class="ui-row"><span class="ui-label">Session</span><span class="ui-val">London</span></div>
+      <div class="ui-row"><span class="ui-label">Lot Size</span><span class="ui-val">0.20</span></div>
+      <div class="ui-row"><span class="ui-label">Entry</span><span class="ui-val">1.26540</span></div>
+      <div class="ui-row"><span class="ui-label">Exit</span><span class="ui-val">1.27100</span></div>
+      <div class="ui-row"><span class="ui-label">Stop Loss</span><span class="ui-val">1.26200</span></div>
+      <div class="ui-row"><span class="ui-label">Take Profit</span><span class="ui-val">1.27200</span></div>
+      <div class="ui-row"><span class="ui-label">P&L</span><span class="ui-val gold">+$112.00</span></div>
+      <div class="ui-row"><span class="ui-label">Result</span><span class="ui-val"><span class="ui-badge ub-win">Win</span></span></div>
+      <div class="ui-row"><span class="ui-label">Setup</span><span class="ui-val" style="font-size:12px;color:#a08c3a">ICT · Breakout</span></div>
+      <div class="ui-row"><span class="ui-label">Emotion</span><span class="ui-val" style="font-size:12px">😌 Calm</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="launch">
+  <h2>Ready to find<br><span>your trading edge?</span></h2>
+  <p>No sign-up. No subscription. No excuses. Start logging your trades today and become the trader you know you can be.</p>
+  <button class="btn-hero btn-gold" style="font-size:16px;padding:1rem 2.5rem" onclick="window.open('./app.html','_blank')">Launch My FX Journal — Free ↗</button>
+  <div class="cta-free">100% free · No account required · Your data stays with you</div>
+</section>
+
+<footer>
+  <div class="footer-logo">My FX Journal</div>
+  <div class="footer-copy">Track Every Trade. Master Every Move.</div>
+  <div class="footer-copy">© 2025 My FX Journal. All rights reserved.</div>
+</footer>
+
+</body>
+</html>
