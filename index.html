@@ -5,6 +5,169 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>My FX Journal — Track Every Trade. Master Every Move.</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- Firebase -->
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,GoogleAuthProvider,signOut}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getFirestore,doc,setDoc,getDoc,collection,getDocs,deleteDoc,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig={apiKey:"AIzaSyCQ_OKxxSefvNXNCDeSYHs5QbkcYSENDmc",authDomain:"my-fx-journal-343b7.firebaseapp.com",projectId:"my-fx-journal-343b7",storageBucket:"my-fx-journal-343b7.firebasestorage.app",messagingSenderId:"782952680701",appId:"1:782952680701:web:559c9b6d3a0c62df6d0294"};
+const fbApp=initializeApp(firebaseConfig);
+const auth=getAuth(fbApp);
+const db=getFirestore(fbApp);
+const googleProvider=new GoogleAuthProvider();
+
+let currentUser=null;
+
+// ── CLOUD SYNC ──
+async function cloudSave(){
+  if(!currentUser)return;
+  try{
+    const uid=currentUser.uid;
+    const batch=writeBatch(db);
+    batch.set(doc(db,'users',uid,'data','profile'),userProfile);
+    batch.set(doc(db,'users',uid,'data','trades'),{list:trades});
+    batch.set(doc(db,'users',uid,'data','weeklies'),{list:weeklies});
+    batch.set(doc(db,'users',uid,'data','reflections'),{list:reflections});
+    batch.set(doc(db,'users',uid,'data','rules'),{list:rules});
+    await batch.commit();
+  }catch(e){console.warn('Cloud save failed:',e)}
+}
+
+async function cloudLoad(){
+  if(!currentUser)return;
+  try{
+    const uid=currentUser.uid;
+    const [prof,tr,we,re,ru]=await Promise.all([
+      getDoc(doc(db,'users',uid,'data','profile')),
+      getDoc(doc(db,'users',uid,'data','trades')),
+      getDoc(doc(db,'users',uid,'data','weeklies')),
+      getDoc(doc(db,'users',uid,'data','reflections')),
+      getDoc(doc(db,'users',uid,'data','rules')),
+    ]);
+    if(prof.exists())Object.assign(userProfile,prof.data());
+    if(tr.exists()&&tr.data().list)trades=tr.data().list;
+    if(we.exists()&&we.data().list)weeklies=we.data().list;
+    if(re.exists()&&re.data().list)reflections=re.data().list;
+    if(ru.exists()&&ru.data().list)rules=ru.data().list;
+  }catch(e){console.warn('Cloud load failed:',e)}
+}
+
+// Override save to also cloud sync
+const _origSave=window._origSave||null;
+window.cloudSaveFn=cloudSave;
+
+// ── AUTH STATE ──
+onAuthStateChanged(auth,async user=>{
+  if(user){
+    currentUser=user;
+    window._currentUser=user;
+    showCloudStatus('☁️ Syncing…',false);
+    await cloudLoad();
+    save();
+    showCloudStatus('☁️ Synced',true);
+    updateAuthUI(user);
+    if(userProfile.name){
+      document.getElementById('landing').classList.add('slide-out');
+      document.getElementById('app').classList.add('slide-in');
+      applyProfile();renderDashboard();renderChecklist();updateChecklistWarning();
+    }else{
+      document.getElementById('landing').classList.add('slide-out');
+      document.getElementById('onboarding').classList.add('slide-in');
+    }
+  }else{
+    currentUser=null;window._currentUser=null;
+    updateAuthUI(null);
+    showCloudStatus('',false);
+  }
+});
+
+function updateAuthUI(user){
+  const loginBtns=document.querySelectorAll('.login-trigger');
+  const logoutBtns=document.querySelectorAll('.logout-trigger');
+  const userDisplays=document.querySelectorAll('.auth-user-display');
+  if(user){
+    loginBtns.forEach(b=>b.style.display='none');
+    logoutBtns.forEach(b=>b.style.display='flex');
+    userDisplays.forEach(el=>{el.textContent=user.displayName||user.email||'Signed in';el.style.display='block'});
+  }else{
+    loginBtns.forEach(b=>b.style.display='flex');
+    logoutBtns.forEach(b=>b.style.display='none');
+    userDisplays.forEach(el=>el.style.display='none');
+  }
+}
+
+function showCloudStatus(msg,ok){
+  const el=document.getElementById('cloud-status');
+  if(el){el.textContent=msg;el.style.color=ok?'var(--success)':'var(--gold)'}
+}
+
+// ── EXPOSED AUTH FUNCTIONS ──
+window.fbSignInGoogle=async()=>{
+  try{
+    setLoginLoading(true);
+    await signInWithPopup(auth,googleProvider);
+    closeLoginModal();
+  }catch(e){showLoginError(e.message);setLoginLoading(false)}
+};
+window.fbSignInEmail=async()=>{
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  if(!email||!pass){showLoginError('Please enter email and password.');return}
+  try{
+    setLoginLoading(true);
+    await signInWithEmailAndPassword(auth,email,pass);
+    closeLoginModal();
+  }catch(e){
+    const msg=e.code==='auth/user-not-found'||e.code==='auth/wrong-password'?'Invalid email or password.':e.code==='auth/invalid-email'?'Invalid email address.':e.message;
+    showLoginError(msg);setLoginLoading(false);
+  }
+};
+window.fbSignUp=async()=>{
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  if(!email||!pass){showLoginError('Please enter email and password.');return}
+  if(pass.length<6){showLoginError('Password must be at least 6 characters.');return}
+  try{
+    setLoginLoading(true);
+    await createUserWithEmailAndPassword(auth,email,pass);
+    closeLoginModal();
+  }catch(e){
+    const msg=e.code==='auth/email-already-in-use'?'Account already exists. Try signing in.':e.code==='auth/weak-password'?'Password is too weak.':e.message;
+    showLoginError(msg);setLoginLoading(false);
+  }
+};
+window.fbSignOut=async()=>{
+  if(!confirm('Sign out? Your data is saved to the cloud.'))return;
+  await signOut(auth);
+  document.getElementById('app').classList.remove('slide-in');
+  document.getElementById('landing').classList.remove('slide-out');
+};
+
+// Hook into app's save() to also trigger cloud save
+const origSaveInterval=setInterval(()=>{
+  if(window._appReady){
+    clearInterval(origSaveInterval);
+    const origSave=window.appSave;
+    if(origSave){
+      window.appSave=function(){origSave();cloudSave().then(()=>showCloudStatus('☁️ Saved',true)).catch(()=>showCloudStatus('☁️ Offline',false))};
+    }
+  }
+},100);
+
+function setLoginLoading(on){
+  const btn=document.getElementById('login-submit-btn');
+  if(btn)btn.textContent=on?'Signing in…':'Sign In';
+  const gbtn=document.getElementById('google-signin-btn');
+  if(gbtn)gbtn.disabled=on;
+}
+function showLoginError(msg){
+  const el=document.getElementById('login-error');
+  if(el){el.textContent=msg;el.style.display='block'}
+}
+function closeLoginModal(){document.getElementById('login-modal').classList.remove('open')}
+window.closeLoginModal=closeLoginModal;
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{--gold:#f5c842;--gold-dim:#c9a227;--gold-muted:#a08c3a;--bg:#0a0a0a;--bg2:#111111;--bg3:#161200;--border:#2a2200;--text:#e2e8f0;--muted:#7a6a4a;--danger:#f87171;--success:#6ee7b7}
@@ -305,7 +468,8 @@ body.light .ai-msg.user .ai-msg-bubble{background:#fdf3cc}
     <a onclick="scrollTo('l-how')">How it works</a>
   </div>
   <div style="display:flex;gap:8px;align-items:center">
-    <button class="btn-hero btn-ghost" style="padding:0.45rem 1rem;font-size:13px" onclick="showLogin()">Log In</button>
+    <button class="btn-hero btn-ghost login-trigger" style="padding:0.45rem 1rem;font-size:13px" onclick="showLogin()">Log In</button>
+    <button class="btn-hero btn-ghost logout-trigger" style="padding:0.45rem 1rem;font-size:13px;display:none;align-items:center;gap:6px" onclick="fbSignOut()">Sign Out</button>
     <button class="nav-cta" onclick="startOnboarding()">Get Started Free</button>
   </div>
 </nav>
@@ -507,7 +671,11 @@ body.light .ai-msg.user .ai-msg-bubble{background:#fdf3cc}
   <div class="nav-item" onclick="nav(this,'ai')"><span class="nav-icon">🤖</span> AI Coach</div>
   <div class="nav-item" onclick="nav(this,'export')"><span class="nav-icon">↓</span> Export / Backup</div>
   <div style="margin-top:auto;padding-top:1rem;display:flex;flex-direction:column;gap:6px">
+    <div id="cloud-status" style="font-size:11px;color:var(--muted);padding:0.4rem 0.75rem"></div>
+    <div class="auth-user-display" style="font-size:11px;color:var(--gold-muted);padding:0 0.75rem;display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     <div class="s-theme-btn" onclick="toggleTheme()" id="theme-btn">🌙 <span id="theme-label">Dark Mode</span></div>
+    <div class="s-theme-btn login-trigger" onclick="showLogin()" style="display:flex">🔑 Sign In / Register</div>
+    <div class="s-theme-btn logout-trigger" onclick="fbSignOut()" style="display:none;color:var(--danger);border-color:#3e1212">⬡ Sign Out</div>
   </div>
 </div>
 
@@ -923,15 +1091,24 @@ body.light .ai-msg.user .ai-msg-bubble{background:#fdf3cc}
 <!-- LOGIN MODAL -->
 <div class="modal-overlay" id="login-modal">
   <div class="modal" style="max-width:420px;border-radius:16px">
-    <div class="modal-header"><span class="modal-title">Sign In</span><button class="close-btn" onclick="document.getElementById('login-modal').classList.remove('open')">×</button></div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:1.25rem">Sign in to enable cloud sync across all your devices. Coming soon — Firebase integration.</p>
-    <button class="google-btn"><span style="font-size:18px">G</span> Continue with Google</button>
-    <div class="login-divider">or</div>
-    <div class="form-group" style="margin-bottom:0.875rem"><label>Email</label><input type="email" placeholder="your@email.com"></div>
-    <div class="form-group" style="margin-bottom:1.25rem"><label>Password</label><input type="password" placeholder="••••••••"></div>
-    <button class="btn btn-primary" style="width:100%">Sign In</button>
-    <div style="text-align:center;margin-top:1rem;font-size:12px;color:var(--muted)">Don't have an account? <span style="color:var(--gold);cursor:pointer">Sign up</span></div>
-    <div style="text-align:center;margin-top:0.5rem;font-size:11px;color:var(--muted)">☁️ Cloud sync stores your data securely across devices</div>
+    <div class="modal-header">
+      <span class="modal-title">Sign In to My FX Journal</span>
+      <button class="close-btn" onclick="document.getElementById('login-modal').classList.remove('open')">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:1.25rem">Sign in to sync your trades across all devices with cloud backup.</p>
+    <button class="google-btn" id="google-signin-btn" onclick="fbSignInGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <div class="login-divider">or use email</div>
+    <div id="login-error" style="display:none;background:#2e0d0d;border:1px solid #3e1212;border-radius:8px;padding:0.6rem 0.875rem;font-size:12px;color:var(--danger);margin-bottom:0.875rem"></div>
+    <div class="form-group" style="margin-bottom:0.875rem"><label>Email Address</label><input type="email" id="login-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')fbSignInEmail()"></div>
+    <div class="form-group" style="margin-bottom:1.25rem"><label>Password</label><input type="password" id="login-pass" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')fbSignInEmail()"></div>
+    <div style="display:flex;gap:8px;margin-bottom:1rem">
+      <button class="btn btn-primary" style="flex:1" id="login-submit-btn" onclick="fbSignInEmail()">Sign In</button>
+      <button class="btn btn-outline" style="flex:1" onclick="fbSignUp()">Create Account</button>
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--muted)">☁️ Your data is encrypted and stored securely in the cloud.<br>Only you can access your journal.</div>
   </div>
 </div>
 
@@ -964,7 +1141,18 @@ let isDark=true;
 let calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
 
 // ── STORAGE ──
-function save(){try{localStorage.setItem('fxj_trades',JSON.stringify(trades));localStorage.setItem('fxj_weeklies',JSON.stringify(weeklies));localStorage.setItem('fxj_reflections',JSON.stringify(reflections));localStorage.setItem('fxj_rules',JSON.stringify(rules));localStorage.setItem('fxj_profile',JSON.stringify(userProfile));}catch(e){}}
+function save(){
+  try{
+    localStorage.setItem('fxj_trades',JSON.stringify(trades));
+    localStorage.setItem('fxj_weeklies',JSON.stringify(weeklies));
+    localStorage.setItem('fxj_reflections',JSON.stringify(reflections));
+    localStorage.setItem('fxj_rules',JSON.stringify(rules));
+    localStorage.setItem('fxj_profile',JSON.stringify(userProfile));
+  }catch(e){}
+  if(window.cloudSaveFn)window.cloudSaveFn();
+}
+window.appSave=save;
+window._appReady=true;
 function load(){try{const t=localStorage.getItem('fxj_trades');if(t)trades=JSON.parse(t);const w=localStorage.getItem('fxj_weeklies');if(w)weeklies=JSON.parse(w);const r=localStorage.getItem('fxj_reflections');if(r)reflections=JSON.parse(r);const ru=localStorage.getItem('fxj_rules');if(ru)rules=JSON.parse(ru);const p=localStorage.getItem('fxj_profile');if(p)userProfile=JSON.parse(p);}catch(e){}}
 
 // ── THEME ──
