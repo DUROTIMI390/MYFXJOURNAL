@@ -807,9 +807,7 @@ body.light .ai-msg.user .ai-msg-bubble{background:#fdf3cc}
     <button class="btn btn-sm btn-primary" onclick="calGoToday()" style="margin-left:auto">Today</button>
   </div>
   <div class="card" style="padding:1rem">
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px">
-      ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div style="text-align:center;font-size:10px;color:var(--muted);font-weight:500;padding:4px">${d}</div>`).join('')}
-    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px" id="cal-header"></div>
     <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px"></div>
   </div>
   <div style="display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap">
@@ -1567,6 +1565,14 @@ function calGoToday(){calYear=new Date().getFullYear();calMonth=new Date().getMo
 function renderCalendar(){
   const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('cal-month-label').textContent=months[calMonth]+' '+calYear;
+  // render day headers
+  const hdr=document.getElementById('cal-header');
+  hdr.innerHTML='';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>{
+    const el=document.createElement('div');
+    el.style.cssText='text-align:center;font-size:10px;color:var(--muted);font-weight:500;padding:4px';
+    el.textContent=d;hdr.appendChild(el);
+  });
   const dayMap={};
   trades.forEach(t=>{const d=new Date(t.date+' 00:00:00');if(d.getFullYear()===calYear&&d.getMonth()===calMonth){const k=t.date;dayMap[k]=(dayMap[k]||0)+t.pnl}});
   const firstDay=new Date(calYear,calMonth,1).getDay(),daysInMonth=new Date(calYear,calMonth+1,0).getDate(),todayStr=today();
@@ -1591,7 +1597,8 @@ function renderHeatmap(){
   const grid={};DAYS.forEach(d=>SESSIONS.forEach(s=>{grid[d+'|'+s]={pnl:0,count:0}}));
   trades.forEach(t=>{if(t.day&&t.session&&grid[t.day+'|'+t.session]!==undefined){grid[t.day+'|'+t.session].pnl+=t.pnl;grid[t.day+'|'+t.session].count++}});
   const maxAbs=Math.max(1,...Object.values(grid).map(v=>Math.abs(v.pnl)));
-  let html=`<div style="display:grid;grid-template-columns:80px repeat(${DAYS.length},1fr);gap:3px;font-size:11px"><div></div>${DAY_S.map(d=>`<div style="text-align:center;padding:4px;color:var(--muted);font-weight:500">${d}</div>`).join('')}`;
+  let html=`<div style="display:grid;grid-template-columns:80px repeat(${DAYS.length},1fr);gap:3px;font-size:11px"><div></div>`;
+  DAY_S.forEach(d=>{html+=`<div style="text-align:center;padding:4px;color:var(--muted);font-weight:500">${d}</div>`});
   SESSIONS.forEach((s,si)=>{
     html+=`<div style="display:flex;align-items:center;color:var(--muted);font-size:10px;padding-right:4px">${SESS_S[si]}</div>`;
     DAYS.forEach(day=>{const c=grid[day+'|'+s],pnl=c.pnl,cnt=c.count;let bg='var(--bg)',tc='var(--muted)';if(cnt>0){const int=Math.min(Math.abs(pnl)/maxAbs,1);if(pnl>0){bg=`rgba(${Math.round(10)},${Math.round(58+int*100)},10,1)`;tc='#6ee7b7'}else if(pnl<0){bg=`rgba(${Math.round(80+int*80)},10,10,1)`;tc='#f87171'}else{bg='#1a1500';tc='#f5c842'}}
