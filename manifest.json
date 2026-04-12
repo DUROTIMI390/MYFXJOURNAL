@@ -1,0 +1,14 @@
+{
+  "name": "My FX Journal",
+  "short_name": "FX Journal",
+  "description": "Track Every Trade. Master Every Move.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
