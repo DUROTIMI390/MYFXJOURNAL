@@ -477,7 +477,39 @@ window.fbSignOut=async()=>{
   userProfile={name:'',exp:'',acct:'',styles:[]};
   aiHistory=[];startingBalance=0;
 };
+</script> 
+  
+<script>
+function showAuthWall(tab){
+  goTo('landing','slide-out');
+  goTo('auth-wall','active');
+  switchAuthTab(tab);
+}
+function switchAuthTab(tab){
+  document.getElementById('auth-register').style.display=tab==='register'?'block':'none';
+  document.getElementById('auth-signin').style.display=tab==='signin'?'block':'none';
+  document.getElementById('tab-register').classList.toggle('active',tab==='register');
+  document.getElementById('tab-signin').classList.toggle('active',tab==='signin');
+}
+function showAuthMsg(msg,type){
+  const err=document.getElementById('auth-msg-error');
+  const suc=document.getElementById('auth-msg-success');
+  err.style.display='none';suc.style.display='none';
+  if(type==='error'){err.textContent=msg;err.style.display='block';}
+  else{suc.textContent=msg;suc.style.display='block';}
+}
+function setAuthLoading(loading,label){
+  const btn=label==='Sign In'?document.getElementById('auth-si-btn'):document.getElementById('auth-reg-btn');
+  if(btn){btn.disabled=loading;btn.textContent=loading?'Please wait…':label;}
+}
+function goTo(id,cls){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.className=el.className.replace(/\b(active|slide-out)\b/g,'').trim();
+  if(cls)el.classList.add(cls);
+}
 </script>
+  
 
 <!-- ═══ LANDING ═══ -->
 <div id="landing">
