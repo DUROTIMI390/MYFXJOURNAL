@@ -372,7 +372,7 @@ async function cloudSave(){
     b.set(doc(db,'users',uid,'data','weeklies'),{list:weeklies||[]});
     b.set(doc(db,'users',uid,'data','reflections'),{list:reflections||[]});
     b.set(doc(db,'users',uid,'data','rules'),{list:rules||[]});
-    b.set(doc(db,'users',uid,'data','meta'),{startingBalance:startingBalance||0});
+    b.set(doc(db,'users',ui,'data','meta'),{startingBalance:startingBalance||0});
     await b.commit();
     setCloudStatus('☁️ Saved',true);
   }catch(e){setCloudStatus('☁️ Offline',false)}
