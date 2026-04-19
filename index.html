@@ -453,6 +453,7 @@ window.fbSignIn=async()=>{
       e.code==='auth/invalid-email'?'Invalid email address.':e.message;
     showAuthMsg(m,'error');
   }finally{setAuthLoading(false,'Sign In')}
+};
   
   window.fbGoogleSignIn=async()=>{
   try{await signInWithRedirect(auth,gProv);}
