@@ -357,7 +357,7 @@ body.light .ai-msg.user .ai-msg-bubble{background:#fdf3cc}
 <!-- ═══ FIREBASE ═══ -->
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,GoogleAuthProvider,sendEmailVerification,sendPasswordResetEmail,signOut,updateProfile}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,signInWithRedirect,getRedirectResult,GoogleAuthProvider,sendEmailVerification,sendPasswordResetEmail,signOut,updateProfile}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'; 
 import{getFirestore,doc,setDoc,getDoc,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const fbApp=initializeApp({apiKey:"AIzaSyCQ_OKxxSefvNXNCDeSYHs5QbkcYSENDmc",authDomain:"my-fx-journal-343b7.firebaseapp.com",projectId:"my-fx-journal-343b7",storageBucket:"my-fx-journal-343b7.firebasestorage.app",messagingSenderId:"782952680701",appId:"1:782952680701:web:559c9b6d3a0c62df6d0294"});
@@ -394,7 +394,7 @@ async function cloudLoad(){
 }
 function setCloudStatus(msg,ok){const el=document.getElementById('cloud-status');if(el){el.textContent=msg;el.style.color=ok?'var(--success)':'var(--gold)'}}
 window.cloudSaveFn=cloudSave;
-
+getRedirectResult(auth).catch(e=>console.log(e));
 onAuthStateChanged(auth,async user=>{
   if(user){
     document.querySelectorAll('.auth-user-display').forEach(el=>{el.textContent=(user.displayName||user.email||'').slice(0,28);el.style.display='block'});
@@ -453,15 +453,13 @@ window.fbSignIn=async()=>{
       e.code==='auth/invalid-email'?'Invalid email address.':e.message;
     showAuthMsg(m,'error');
   }finally{setAuthLoading(false,'Sign In')}
+  
+  window.fbGoogleSignIn=async()=>{
+  try{await signInWithRedirect(auth,gProv);}
+  catch(e){showAuthMsg(e.message,'error');}
 };
 
-window.fbGoogleSignIn=async()=>{
-  setAuthLoading(true,'Google');
-  try{await signInWithPopup(auth,gProv)}
-  catch(e){
-    if(e.code!=='auth/popup-closed-by-user')showAuthMsg(e.message,'error');
-  }finally{setAuthLoading(false,'Google')}
-};
+
 
 window.fbResetPassword=async()=>{
   const email=document.getElementById('si-email').value.trim();
