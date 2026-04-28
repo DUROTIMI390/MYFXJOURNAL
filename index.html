@@ -183,6 +183,22 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-seri
 #onboarding.slide-in{transform:translateX(0)}
 #onboarding.slide-out{transform:translateX(-100%)}
 #app.slide-in{transform:translateX(0)}
+/* BALANCE TILES */
+.balance-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+.balance-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem}
+@media(max-width:600px){.balance-grid{grid-template-columns:1fr 1fr}}
+.btile{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.875rem 1rem;position:relative}
+.btile-label{font-size:11px;color:#64748b;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.btile-val{font-size:19px;font-weight:600;color:var(--text)}
+.btile-val.gold{color:var(--gold)}.btile-val.green{color:var(--success)}.btile-val.red{color:var(--danger)}.btile-val.muted{color:var(--muted)}
+.edit-pencil{background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 4px;border-radius:4px;line-height:1;position:absolute;top:10px;right:10px;transition:color .15s}
+.edit-pencil:hover{color:var(--gold)}
+.edit-inline{display:none;align-items:center;gap:6px;margin-top:6px}
+.edit-inline.show{display:flex}
+.edit-inline input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:6px;font-size:13px;width:110px;outline:none}
+.edit-inline input:focus{border-color:var(--gold)}
+.edit-inline button{background:var(--gold-dim);color:#0a0a0a;border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer}
+  
 
 /* ══ LANDING ══ */
 nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,10,0.97);backdrop-filter:blur(10px);z-index:50}
@@ -692,6 +708,40 @@ body.light .ai-msg.user .ai-msg-bubble{background:#fdf3cc}
       <select id="dash-filter-tag" onchange="renderDashboard()" style="font-size:12px;padding:0.4rem 0.6rem;width:auto"><option value="">All Setups</option><option>ICT</option><option>SMC</option><option>Breakout</option><option>Trend Follow</option><option>Reversal</option><option>Range</option><option>Scalp</option><option>Swing</option></select>
     </div>
   </div>
+<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.6rem;font-weight:500">Balance Overview</div>
+<div class="balance-grid">
+  <div class="btile">
+    <div class="btile-label">Starting Balance<button class="edit-pencil" onclick="toggleBalEdit()" title="Edit">✎</button></div>
+    <div class="btile-val gold" id="b-start">$0.00</div>
+    <div class="edit-inline" id="bal-edit-inline">
+      <input type="number" id="bal-edit-input" placeholder="10000" step="0.01" onkeydown="if(event.key==='Enter')saveStartBal()">
+      <button onclick="saveStartBal()">Save</button>
+    </div>
+  </div>
+  <div class="btile">
+    <div class="btile-label">Current Balance</div>
+    <div class="btile-val green" id="b-current">$0.00</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px">Start + Total P&L</div>
+  </div>
+  <div class="btile">
+    <div class="btile-label">Remaining Balance</div>
+    <div class="btile-val gold" id="b-remain">$0.00</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px">Available capital</div>
+  </div>
+</div>
+<div class="balance-row2">
+  <div class="btile">
+    <div class="btile-label">Today's P&L</div>
+    <div class="btile-val muted" id="b-today">$0.00</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px" id="b-today-count">0 trades today</div>
+  </div>
+  <div class="btile">
+    <div class="btile-label">Total P&L (all time)</div>
+    <div class="btile-val muted" id="b-total">$0.00</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px" id="b-total-count">from 0 trades</div>
+  </div>
+</div>
+  
   <div class="metrics">
     <div class="metric-card"><div class="metric-label">Total Trades</div><div class="metric-value" id="m-total">0</div></div>
     <div class="metric-card"><div class="metric-label">Win Rate</div><div class="metric-value green" id="m-wr">0%</div></div>
@@ -1286,11 +1336,55 @@ function getFilteredTrades(){
   const ft=document.getElementById('dash-filter-tag')?.value||'';
   return trades.filter(t=>(!fp||t.pair===fp)&&(!fs||t.session===fs)&&(!ft||t.tags?.includes(ft)));
 }
+  
+  let startingBalance=parseFloat(localStorage.getItem('startingBalance'))||0;
+
+function toggleBalEdit(){
+  const el=document.getElementById('bal-edit-inline');
+  el.classList.toggle('show');
+  if(el.classList.contains('show')){
+    document.getElementById('bal-edit-input').value=startingBalance||'';
+    document.getElementById('bal-edit-input').focus();
+  }
+}
+
+function saveStartBal(){
+  const val=parseFloat(document.getElementById('bal-edit-input').value);
+  if(isNaN(val)||val<0)return;
+  startingBalance=val;
+  localStorage.setItem('startingBalance',val);
+  document.getElementById('bal-edit-inline').classList.remove('show');
+  renderDashboard();
+}
+
+function updateBalanceTiles(t){
+  const totalPnl=t.reduce((s,x)=>s+(parseFloat(x.pnl)||0),0);
+  const today=new Date().toISOString().slice(0,10);
+  const todayTrades=t.filter(x=>x.date===today);
+  const todayPnl=todayTrades.reduce((s,x)=>s+(parseFloat(x.pnl)||0),0);
+  const current=startingBalance+totalPnl;
+  const remain=current;
+  const fmt=v=>(v>=0?'+$':'-$')+Math.abs(v).toFixed(2);
+  const fp=v=>'$'+v.toFixed(2);
+  document.getElementById('b-start').textContent=fp(startingBalance);
+  document.getElementById('b-current').textContent=fp(current);
+  document.getElementById('b-remain').textContent=fp(remain);
+  const te=document.getElementById('b-today');
+  te.textContent=fmt(todayPnl);
+  te.className='btile-val '+(todayPnl>0?'green':todayPnl<0?'red':'muted');
+  const tl=document.getElementById('b-total');
+  tl.textContent=fmt(totalPnl);
+  tl.className='btile-val '+(totalPnl>0?'green':totalPnl<0?'red':'muted');
+  document.getElementById('b-today-count').textContent=todayTrades.length+' trade'+(todayTrades.length!==1?'s':'')+' today';
+  document.getElementById('b-total-count').textContent='from '+t.length+' trade'+(t.length!==1?'s':'');
+}
+  
 function renderDashboard(){
   const pairs=[...new Set(trades.map(t=>t.pair))].filter(Boolean);
   const ps=document.getElementById('dash-filter-pair');
   if(ps){const cur=ps.value;ps.innerHTML='<option value="">All Pairs</option>'+pairs.map(p=>`<option${p===cur?' selected':''}>${p}</option>`).join('')}
   const ft=getFilteredTrades();
+  updateBalanceTiles(ft);
   const total=ft.length,wins=ft.filter(t=>t.result==='Win').length;
   const totalPnl=ft.reduce((a,t)=>a+t.pnl,0),best=ft.length?Math.max(...ft.map(t=>t.pnl)):0;
   document.getElementById('m-total').textContent=total;
