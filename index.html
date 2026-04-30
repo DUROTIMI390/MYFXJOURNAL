@@ -466,7 +466,8 @@ body.light .ai-msg.user .ai-msg-bubble{background:#fdf3cc}
 .login-divider{display:flex;align-items:center;gap:10px;margin:1rem 0;color:var(--muted);font-size:12px}
 .login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--border)}
 .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:0.75rem;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;cursor:pointer;transition:all 0.15s;font-family:inherit;font-weight:500}
-.google-btn:hover{border-color:var(--gold-muted)}
+.google-btn:hover{border-color:var(--gold-muted)}.stat-warn-badge{display:inline-flex;align-items:center;gap:3px;background:#2e1f0d;color:var(--gold);border-radius:4px;padding:2px 6px;font-size:10px;margin-top:4px}
+.stat-good-badge{display:inline-flex;align-items:center;gap:3px;background:#0d2e1f;color:var(--success);border-radius:4px;padding:2px 6px;font-size:10px;margin-top:4px}  
 </style>
 </head>
 <body>
@@ -1415,7 +1416,7 @@ function renderAdvStats(){
   if(!trades.length){document.getElementById('adv-stats-grid').innerHTML='<div class="empty-state" style="grid-column:1/-1">Log trades to see advanced stats.</div>';return}
   const wins=trades.filter(t=>t.result==='Win');
   const losses=trades.filter(t=>t.result==='Loss');
-  const totalPnl=trades.reduce((a,t)=>a+t.pnl,0);
+  const totalPnl=trades.reduce((ah,t)=>a+t.pnl,0);
   const avgWin=wins.length?wins.reduce((a,t)=>a+t.pnl,0)/wins.length:0;
   const avgLoss=losses.length?Math.abs(losses.reduce((a,t)=>a+t.pnl,0)/losses.length):0;
   const wr=trades.length?(wins.length/trades.length):0;
@@ -1427,17 +1428,19 @@ function renderAdvStats(){
   // streaks
   let curWin=0,curLoss=0,maxWin=0,maxLoss=0;
   trades.forEach(t=>{if(t.result==='Win'){curWin++;curLoss=0;if(curWin>maxWin)maxWin=curWin}else if(t.result==='Loss'){curLoss++;curWin=0;if(curLoss>maxLoss)maxLoss=curLoss}else{curWin=0;curLoss=0}});
-  document.getElementById('adv-stats-grid').innerHTML=`
-    <div class="stat-card"><div class="stat-card-label">Expectancy</div><div class="stat-card-val" style="color:${expectancy>=0?'var(--gold)':'var(--danger)'}">${expectancy>=0?'+':''}$${expectancy.toFixed(2)}</div></div>
-    <div class="stat-card"><div class="stat-card-label">Profit Factor</div><div class="stat-card-val" style="color:${profitFactor>=1?'var(--gold)':'var(--danger)'}">${profitFactor.toFixed(2)}</div></div>
-    <div class="stat-card"><div class="stat-card-label">Max Drawdown</div><div class="stat-card-val" style="color:var(--danger)">-$${maxDD.toFixed(2)}</div></div>
-    <div class="stat-card"><div class="stat-card-label">Avg Win</div><div class="stat-card-val" style="color:var(--gold)">+$${avgWin.toFixed(2)}</div></div>
-    <div class="stat-card"><div class="stat-card-label">Avg Loss</div><div class="stat-card-val" style="color:var(--danger)">-$${avgLoss.toFixed(2)}</div></div>
-    <div class="stat-card"><div class="stat-card-label">Win:Loss Ratio</div><div class="stat-card-val">${avgLoss>0?(avgWin/avgLoss).toFixed(2):'—'}</div></div>
-    <div class="stat-card"><div class="stat-card-label">Total Trades</div><div class="stat-card-val">${trades.length}</div></div>
-    <div class="stat-card"><div class="stat-card-label">Win Rate</div><div class="stat-card-val" style="color:var(--gold)">${(wr*100).toFixed(1)}%</div></div>
-    <div class="stat-card"><div class="stat-card-label">Total P&L</div><div class="stat-card-val" style="color:${totalPnl>=0?'var(--gold)':'var(--danger)'}">${totalPnl>=0?'+':''}$${totalPnl.toFixed(2)}</div></div>`;
-  document.getElementById('streak-info').innerHTML=`<span style="color:var(--gold)">Best Win Streak: ${maxWin}</span> &nbsp;·&nbsp; <span style="color:var(--danger)">Worst Loss Streak: ${maxLoss}</span> &nbsp;·&nbsp; <span style="color:var(--muted)">Current: ${curWin>0?curWin+' wins':curLoss>0?curLoss+' losses':'—'}</span>`;
+ const lowSample=trades.length<20; const warn=lowSample?`<div class="stat-warn-badge">⚠️ Low sample size</div>`:'';const good=`<div class="stat-good-badge">✓ Reliable</div>`;
+document.getElementById('adv-stats-grid').innerHTML=`
+<div class="stat-card"><div class="stat-card-label">Expectancy — Avg $ gained per trade</div><div class="stat-card-val" style="color:${expectancy>=0?'var(--gold)':'var(--danger)'}">${expectancy>=0?'+$':'-$'}${Math.abs(expectancy).toFixed(2)}</div>${warn||good}</div>
+<div class="stat-card"><div class="stat-card-label">Profit Factor — Gross wins ÷ Gross losses</div><div class="stat-card-val" style="color:${profitFactor>=1.5?'var(--gold)':'var(--danger)'}">${profitFactor.toFixed(2)}</div>${profitFactor>=1.5?good:warn||'<div class="stat-warn-badge">⚠️ Below 1.5 target</div>'}</div>
+<div class="stat-card"><div class="stat-card-label">Max Drawdown — Largest peak-to-trough loss</div><div class="stat-card-val" style="color:var(--danger)">-$${maxDD.toFixed(2)}</div>${warn}</div>
+<div class="stat-card"><div class="stat-card-label">Avg Win — Mean profit on winning trades</div><div class="stat-card-val" style="color:var(--gold)">+$${avgWin.toFixed(2)}</div>${warn}</div>
+<div class="stat-card"><div class="stat-card-label">Avg Loss — Mean loss on losing trades</div><div class="stat-card-val" style="color:var(--danger)">-$${avgLoss.toFixed(2)}</div>${warn}</div>
+<div class="stat-card"><div class="stat-card-label">Win:Loss Ratio — Avg win ÷ Avg loss</div><div class="stat-card-val">${avgLoss>0?(avgWin/avgLoss).toFixed(2):'—'}</div>${warn||good}</div>
+<div class="stat-card"><div class="stat-card-label">Win Rate — % of trades closed in profit</div><div class="stat-card-val">${(wr*100).toFixed(1)}%</div>${warn}</div>
+<div class="stat-card"><div class="stat-card-label">Total Trades — All logged trades</div><div class="stat-card-val" style="color:var(--gold)">${trades.length}</div>${lowSample?warn:good}</div>
+<div class="stat-card"><div class="stat-card-label">Total P&L — Sum of all trade profits/losses</div><div class="stat-card-val" style="color:${totalPnl>=0?'var(--gold)':'var(--danger)'}">${totalPnl>=0?'+$':'-$'}${Math.abs(totalPnl).toFixed(2)}</div>${warn||good}</div>
+`;
+ document.getElementById('streak-info').innerHTML=`<span style="color:var(--gold)">Best Win Streak: ${maxWin}</span> &nbsp;·&nbsp; <span style="color:var(--danger)">Worst Loss Streak: ${maxLoss}</span> &nbsp;·&nbsp; <span style="color:var(--muted)">Current: ${curWin>0?curWin+' wins':curLoss>0?curLoss+' losses':'—'}</span>`;
   // charts
   const co={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6a5c3a',font:{size:9}},grid:{color:'rgba(128,100,0,0.08)'}},y:{ticks:{color:'#6a5c3a',font:{size:9}},grid:{color:'rgba(128,100,0,0.08)'}}}};
   if(avgWLChart)avgWLChart.destroy();
