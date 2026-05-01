@@ -1163,6 +1163,7 @@ body.light .ai-msg.user .ai-msg-bubble{background:#fdf3cc}
 
 <script>
 // ── STATE ──
+let startingBalance=parseFloat(localStorage.getItem('startingBalance'))||0; 
 let trades=[],weeklies=[],reflections=[],aiHistory=[];
 let selEmotion='',selMood='',selFocus=0,selStars=0,selTags=[],imgData='';
 let pnlChart,wlChart,sessionChart,pairChart,avgWLChart,tagChart,emotionChart,dayChart,hmChart;
@@ -1338,8 +1339,6 @@ function getFilteredTrades(){
   return trades.filter(t=>(!fp||t.pair===fp)&&(!fs||t.session===fs)&&(!ft||t.tags?.includes(ft)));
 }
   
-  let startingBalance=parseFloat(localStorage.getItem('startingBalance'))||0;
-
 function toggleBalEdit(){
   const el=document.getElementById('bal-edit-inline');
   el.classList.toggle('show');
