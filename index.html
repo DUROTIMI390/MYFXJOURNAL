@@ -778,7 +778,7 @@ body.light .ai-msg.user .ai-msg-bubble{background:#fdf3cc}
     <div class="form-group"><label>Date</label><input type="date" id="f-date"></div>
     <div class="form-group"><label>Direction</label><select id="f-dir"><option value="">Select…</option><option>Buy</option><option>Sell</option></select></div>
     <div class="form-group"><label>Session</label><select id="f-session"><option value="">Select…</option><option>Asian</option><option>London</option><option>New York</option><option>London/NY Overlap</option><option>Asian/London Overlap</option></select></div>
-    <div class="form-group"><label>Day of Week</label><select id="f-day"><option value="">Select…</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select></div>
+    <div class="form-group"><label>Day of Week</label><select id="f-day"><option value="">Select…</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
     <div class="form-group"><label>Lot Size</label><input type="number" id="f-lot" placeholder="e.g. 0.10" step="0.01" min="0"></div>
   </div>
   <div class="form-grid-3">
@@ -945,7 +945,10 @@ body.light .ai-msg.user .ai-msg-bubble{background:#fdf3cc}
       <div class="form-group"><label>Entry Price</label><input type="number" id="rc-entry" placeholder="1.08500" step="0.00001" oninput="calcRisk()"></div>
       <div class="form-group"><label>Stop Loss Price</label><input type="number" id="rc-sl" placeholder="1.08200" step="0.00001" oninput="calcRisk()"></div>
       <div class="form-group"><label>Take Profit Price</label><input type="number" id="rc-tp" placeholder="1.09100" step="0.00001" oninput="calcRisk()"></div>
-      <div class="form-group"><label>Pair Type</label><select id="rc-pair"><option value="6">Major (EUR/USD…)</option><option value="4">JPY pair</option></select></div>
+      <div class="form-group"><label>Pair Type</label><div style="position:relative"><input type="text" id="pair-search" placeholder="Search pair e.g. XAUUSD"
+      oninput="filterPairs()" onfocus="showPairList()" autocomplete="off"style="width:100%;padding:8px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary)">
+    <ul id="pair-list" style="display:none;position:absolute;background:#1e2a3a; border:1px solid #334;border-radius:8px;max-height:200px;overflow-y:auto;
+      list-style:none;padding:4px 0;margin:0;z-index:100;width:100%"></ul></div></div>
     </div>
     <div class="risk-result" id="risk-result" style="display:none">
       <div class="risk-row"><span class="risk-label">Dollar Risk</span><span class="risk-val" id="rr-dollar">—</span></div>
@@ -1122,7 +1125,7 @@ window._geminiInit('AIzaSyDQUogaPwveZ-G_mv0VnyLI9yXy77GdgGM');
 // ── LOOKUP TABLES (declared first — referenced by Firebase async callbacks) ──
 var catLabel={pre:'Pre-Trade',risk:'Risk Mgmt',post:'Post-Trade',mind:'Mindset'};
 var catClass={pre:'cat-pre',risk:'cat-risk',post:'cat-post',mind:'cat-mind'};
-var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Satuday','Sunday'];
 var SESSIONS=['Asian','London','New York','London/NY Overlap','Asian/London Overlap'];
 var DAY_S=['Mon','Tue','Wed','Thu','Fri'];
 var SESS_S=['Asian','London','NY','LN/NY','AS/LN'];
@@ -1429,7 +1432,7 @@ function renderAdvStats(){
   const emoMap={};trades.forEach(t=>{if(t.emotion)emoMap[t.emotion]=(emoMap[t.emotion]||0)+t.pnl});
   if(emotionChart)emotionChart.destroy();
   emotionChart=new Chart(document.getElementById('emotionChart'),{type:'bar',data:{labels:Object.keys(emoMap),datasets:[{data:Object.values(emoMap),backgroundColor:Object.values(emoMap).map(v=>v>=0?'#1a3a1a':'#3a1a1a'),borderColor:Object.values(emoMap).map(v=>v>=0?'#f5c842':'#f87171'),borderWidth:1.5}]},options:co});
-  const dayMap={};['Monday','Tuesday','Wednesday','Thursday','Friday'].forEach(d=>dayMap[d]=0);
+  const dayMap={};['Monday','Tuesday','Wednesday','Thursday','Friday''Satuday','Sunday].forEach(d=>dayMap[d]=0);
   trades.forEach(t=>{if(t.day)dayMap[t.day]=(dayMap[t.day]||0)+t.pnl});
   if(dayChart)dayChart.destroy();
   dayChart=new Chart(document.getElementById('dayChart'),{type:'bar',data:{labels:Object.keys(dayMap),datasets:[{data:Object.values(dayMap),backgroundColor:Object.values(dayMap).map(v=>v>=0?'#1a3a1a':'#3a1a1a'),borderColor:Object.values(dayMap).map(v=>v>=0?'#f5c842':'#f87171'),borderWidth:1.5}]},options:co});
@@ -1560,7 +1563,7 @@ function parseCSV(text,platform){
   }
   return results;
 }
-function getDayOfWeek(dateStr){const d=new Date(dateStr);return['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]||''}
+function getDayOfWeek(dateStr){const d=new Date(dateStr);return['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday][d.getDay()]||''}
 function confirmImport(platform){
   if(!parsedImportTrades.length)return;
   const existing=new Set(trades.map(t=>t.date+'|'+t.pair+'|'+t.pnl));
@@ -1579,29 +1582,126 @@ function saveWeekly(){
   save();document.getElementById('w-saved').style.display='block';setTimeout(()=>document.getElementById('w-saved').style.display='none',2500);renderWeeklyHistory();
 }
 function renderWeeklyHistory(){
-  const el=document.getElementById('weekly-history');
+  const el = document.getElementById('weekly-history');
   if(!weeklies.length){el.innerHTML='<div class="empty-state">No reviews saved yet.</div>';return}
-  el.innerHTML=weeklies.map(w=>`<div class="history-item"><div><div style="font-weight:500;margin-bottom:4px">Week of ${w.date}</div><div style="font-size:12px;color:var(--muted)">${w.lessons?w.lessons.slice(0,60)+'…':'No lessons noted'}</div></div><div style="color:var(--gold);font-size:15px;flex-shrink:0;margin-left:10px">${'★'.repeat(w.stars)+'☆'.repeat(5-w.stars)}</div></div>`).join('');
+  el.innerHTML = weeklies.map((w, i) => `
+    <div class="history-item">
+      <div style="font-weight:500;margin-bottom:8px">${w.date} — ${w.stars}⭐</div>
+      <div id="weekly-view-${i}">
+        <p>${w.notes || ''}</p>
+        <button onclick="editWeekly(${i})" style="margin-top:8px;padding:4px 12px;cursor:pointer">Edit</button>
+      </div>
+      <div id="weekly-edit-${i}" style="display:none">
+        <textarea id="weekly-ta-${i}" rows="4" style="width:100%">${w.notes || ''}</textarea>
+        <button onclick="saveWeeklyEdit(${i})">Save</button>
+        <button onclick="cancelWeeklyEdit(${i})">Cancel</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function editWeekly(i){
+  document.getElementById(`weekly-view-${i}`).style.display='none';
+  document.getElementById(`weekly-edit-${i}`).style.display='block';
+}
+
+function cancelWeeklyEdit(i){
+  document.getElementById(`weekly-view-${i}`).style.display='block';
+  document.getElementById(`weekly-edit-${i}`).style.display='none';
+}
+
+function saveWeeklyEdit(i){
+  weeklies[i].notes = document.getElementById(`weekly-ta-${i}`).value;
+  save();
+  renderWeeklyHistory();
+}
 }
 function saveReflect(){
   reflections.unshift({id:Date.now(),date:document.getElementById('r-date').value,mood:selMood,focus:selFocus,feel:document.getElementById('r-feel').value,plan:document.getElementById('r-plan').value,patterns:document.getElementById('r-patterns').value,ideal:document.getElementById('r-ideal').value});
   save();document.getElementById('r-saved').style.display='block';setTimeout(()=>document.getElementById('r-saved').style.display='none',2500);renderReflectHistory();
 }
-function renderReflectHistory(){
-  const el=document.getElementById('reflect-history');
+  function renderReflectHistory(){
+  const el = document.getElementById('reflect-history');
   if(!reflections.length){el.innerHTML='<div class="empty-state">No reflections saved yet.</div>';return}
-  el.innerHTML=reflections.map(r=>`<div class="history-item"><div><div style="font-weight:500;margin-bottom:4px">${r.date}${r.mood?' · '+r.mood:''}</div><div style="font-size:12px;color:var(--muted)">${r.feel?r.feel.slice(0,60)+'…':'No entry'}</div></div><div style="text-align:right;flex-shrink:0;margin-left:10px">${r.focus?`<div style="font-size:11px;color:var(--muted)">Focus</div><div style="font-size:15px;font-weight:600;color:var(--gold)">${r.focus}/10</div>`:''}</div></div>`).join('');
+  el.innerHTML = reflections.map((r, i) => `
+    <div class="history-item">
+      <div style="font-weight:500;margin-bottom:8px">${r.date} — ${r.mood}</div>
+      <div id="reflect-view-${i}">
+        <p>${r.notes || ''}</p>
+        <button onclick="editReflect(${i})" style="margin-top:8px;padding:4px 12px;cursor:pointer">Edit</button>
+      </div>
+      <div id="reflect-edit-${i}" style="display:none">
+        <textarea id="reflect-ta-${i}" rows="4" style="width:100%">${r.notes || ''}</textarea>
+        <button onclick="saveReflectEdit(${i})">Save</button>
+        <button onclick="cancelReflectEdit(${i})">Cancel</button>
+      </div>
+    </div>
+  `).join('');
 }
 
+function editReflect(i){
+  document.getElementById(`reflect-view-${i}`).style.display='none';
+  document.getElementById(`reflect-edit-${i}`).style.display='block';
+}
+
+function cancelReflectEdit(i){
+  document.getElementById(`reflect-view-${i}`).style.display='block';
+  document.getElementById(`reflect-edit-${i}`).style.display='none';
+}
+
+function saveReflectEdit(i){
+  reflections[i].notes = document.getElementById(`reflect-ta-${i}`).value;
+  save();
+  renderReflectHistory();
+}
+}
 // ── RISK ──
 function calcRisk(){
-  const bal=parseFloat(document.getElementById('rc-balance').value),rp=parseFloat(document.getElementById('rc-risk-pct').value),en=parseFloat(document.getElementById('rc-entry').value),sl=parseFloat(document.getElementById('rc-sl').value),tp=parseFloat(document.getElementById('rc-tp').value),pd=parseInt(document.getElementById('rc-pair').value);
+  const bal=parseFloat(document.getElementById('rc-balance').value),rp=parseFloat(document.getElementById('rc-risk-pct').value),en=parseFloat(document.getElementById('rc-entry').value),sl=parseFloat(document.getElementById('rc-sl').value),tp=parseFloat(document.getElementById('rc-tp').value),pd=parseInt(document.getElementById('pair-search').value);
   if(!bal||!rp||!en||!sl)return;
   const dr=(bal*rp)/100,pv=Math.pow(10,-pd),slp=Math.abs(en-sl)/pv,lots=slp>0?parseFloat((dr/(slp*10)).toFixed(2)):0,tpp=tp?Math.abs(tp-en)/pv:0,rr=slp>0&&tpp>0?(tpp/slp).toFixed(2):0,profit=lots*tpp*10;
   document.getElementById('risk-result').style.display='block';
   document.getElementById('rr-dollar').textContent='$'+dr.toFixed(2);document.getElementById('rr-sl-pips').textContent=slp.toFixed(1)+' pips';
   document.getElementById('rr-lots').textContent=lots+' lots';document.getElementById('rr-tp-pips').textContent=tpp?tpp.toFixed(1)+' pips':'—';
   document.getElementById('rr-ratio').textContent=rr?'1:'+rr:'—';document.getElementById('rr-profit').textContent=profit?'$'+profit.toFixed(2):'—';
+  const allPairs = [
+  'EURUSD','GBPUSD','USDJPY','USDCHF','AUDUSD','USDCAD','NZDUSD',
+  'EURGBP','EURJPY','EURCAD','EURAUD','EURNZD','EURCHF',
+  'GBPJPY','GBPCAD','GBPAUD','GBPNZD','GBPCHF','VIX25',
+  'AUDJPY','AUDCAD','AUDNZD','AUDCHF','CADJPY','CADCHF',
+  'NZDJPY','NZDCAD','NZDCHF','CHFJPY','BTCUSD','VIX75',
+  'USDZAR','USDMXN','USDSEK','USDNOK','USDTRY','USDSGD',
+  'EURZAR','EURTRY','EURSEK','GBPZAR','GBPTRY',
+  'XAUUSD','XAGUSD','XAUEUR','US30','NAS100','SPX500','UK100','GER40'
+];
+
+function showPairList(){
+  filterPairs();
+  document.getElementById('pair-list').style.display='block';
+}
+
+function filterPairs(){
+  const search = document.getElementById('pair-search').value.toUpperCase();
+  const list = document.getElementById('pair-list');
+  const filtered = allPairs.filter(p => p.includes(search));
+  list.innerHTML = filtered.map(p => 
+    `<li onclick="selectPair('${p}')" style="padding:8px 16px;cursor:pointer;
+      hover:background:#2a3a4a">${p}</li>`
+  ).join('');
+  list.style.display = filtered.length ? 'block' : 'none';
+}
+
+function selectPair(pair){
+  document.getElementById('pair-search').value = pair;
+  document.getElementById('pair-list').style.display='none';
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e){
+  if(!e.target.closest('#pair-search') && !e.target.closest('#pair-list')){
+    const list = document.getElementById('pair-list');
+    if(list) list.style.display='none';
+  }
 }
 function calcDailyLoss(){
   const bal=parseFloat(document.getElementById('dl-balance').value),pct=parseFloat(document.getElementById('dl-pct').value);
@@ -1756,5 +1856,35 @@ function resetAll(){
   document.getElementById('app').classList.remove('slide-in');document.getElementById('onboarding').classList.remove('slide-in','slide-out');document.getElementById('landing').classList.remove('slide-out');
 }
 </script>
+  </script>
+
+<div class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <div class="mob-nav-item active" onclick="showPage('dashboard')">
+      <span class="mob-nav-icon">📊</span>
+      <span>Home</span>
+    </div>
+    <div class="mob-nav-item" onclick="showPage('log')">
+      <span class="mob-nav-icon">📝</span>
+      <span>Log</span>
+    </div>
+    <div class="mob-nav-item" onclick="showPage('stats')">
+      <span class="mob-nav-icon">📈</span>
+      <span>Stats</span>
+    </div>
+    <div class="mob-nav-item" onclick="showPage('risk')">
+      <span class="mob-nav-icon">🧮</span>
+      <span>Risk</span>
+    </div>
+    <div class="mob-nav-item" onclick="showPage('weekly')">
+      <span class="mob-nav-icon">📅</span>
+      <span>Weekly</span>
+    </div>
+    <div class="mob-nav-item" onclick="showPage('reflect')">
+      <span class="mob-nav-icon">🪞</span>
+      <span>Reflect</span>
+    </div>
+  </div>
+</div>
 </body>
 </html>
