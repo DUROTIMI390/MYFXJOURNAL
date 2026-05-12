@@ -1432,7 +1432,7 @@ function renderAdvStats(){
   const emoMap={};trades.forEach(t=>{if(t.emotion)emoMap[t.emotion]=(emoMap[t.emotion]||0)+t.pnl});
   if(emotionChart)emotionChart.destroy();
   emotionChart=new Chart(document.getElementById('emotionChart'),{type:'bar',data:{labels:Object.keys(emoMap),datasets:[{data:Object.values(emoMap),backgroundColor:Object.values(emoMap).map(v=>v>=0?'#1a3a1a':'#3a1a1a'),borderColor:Object.values(emoMap).map(v=>v>=0?'#f5c842':'#f87171'),borderWidth:1.5}]},options:co});
-  const dayMap={};['Monday','Tuesday','Wednesday','Thursday','Friday''Satuday','Sunday].forEach(d=>dayMap[d]=0);
+  const dayMap={};['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday].forEach(d=>dayMap[d]=0);
   trades.forEach(t=>{if(t.day)dayMap[t.day]=(dayMap[t.day]||0)+t.pnl});
   if(dayChart)dayChart.destroy();
   dayChart=new Chart(document.getElementById('dayChart'),{type:'bar',data:{labels:Object.keys(dayMap),datasets:[{data:Object.values(dayMap),backgroundColor:Object.values(dayMap).map(v=>v>=0?'#1a3a1a':'#3a1a1a'),borderColor:Object.values(dayMap).map(v=>v>=0?'#f5c842':'#f87171'),borderWidth:1.5}]},options:co});
