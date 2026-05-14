@@ -1268,11 +1268,6 @@ window.weeklies=weeklies;
 window.reflections=reflections;
 window.rules=rules;
 window.userProfile=userProfile;
-// Expose app functions needed by Firebase auth callbacks
-window.applyProfile=function(){applyProfile();};
-window.renderDashboard=function(){renderDashboard();};
-window.renderChecklist=function(){renderChecklist();};
-window.updateChecklistWarning=function(){updateChecklistWarning();};
 
 function load(){
   try{
@@ -1315,10 +1310,8 @@ function startOnboarding(){
   document.getElementById('landing').classList.add('slide-out');
   document.getElementById('onboarding').classList.add('slide-in');
 }
-window.startOnboarding = startOnboarding;
 
 function showLogin(){document.getElementById('login-modal').classList.add('open')}
-window.showLogin = showLogin;
 
 // ── BOOT ──
 load();loadTheme();
@@ -1337,7 +1330,6 @@ function goBack(){
   document.getElementById('onboarding').classList.remove('slide-in','slide-out');
   document.getElementById('app').classList.remove('slide-in');
 }
-window.goBack = goBack;
 
 function obNext(s){
   if(s===1){var n=document.getElementById('ob-name').value.trim();if(!n){alert('Please enter your name.');return}userProfile.name=n}
@@ -2172,6 +2164,82 @@ function resetAll(){
     '<button class="btn btn-sm btn-outline" onclick="this.closest('.del-confirm-reset').remove()">Cancel</button>';
   container.appendChild(bar);
 }
+
+// ── EXPOSE ALL FUNCTIONS TO WINDOW (required for onclick handlers on GitHub Pages) ──
+window.scrollToSection=scrollToSection;
+window.toggleTheme=toggleTheme;
+window.startOnboarding=startOnboarding;
+window.showLogin=showLogin;
+window.goBack=goBack;
+window.obNext=obNext;
+window.obBack=obBack;
+window.selectOb=selectOb;
+window.toggleStyle=toggleStyle;
+window.finishOnboarding=finishOnboarding;
+window.nav=nav;
+window.mobNav=mobNav;
+window.toggleMore=toggleMore;
+window.applyProfile=applyProfile;
+window.updateChecklistWarning=updateChecklistWarning;
+window.toggleTag=toggleTag;
+window.selectEmotion=selectEmotion;
+window.selectMood=selectMood;
+window.setFocus=setFocus;
+window.setStars=setStars;
+window.previewImg=previewImg;
+window.saveTrade=saveTrade;
+window.clearForm=clearForm;
+window.toggleBalEdit=toggleBalEdit;
+window.saveStartBal=saveStartBal;
+window.renderDashboard=renderDashboard;
+window.renderAdvStats=renderAdvStats;
+window.renderHistory=renderHistory;
+window.showTrade=showTrade;
+window.updateTrade=updateTrade;
+window.deleteTrade=deleteTrade;
+window.closeModal=closeModal;
+window.showImportModal=showImportModal;
+window.previewCSV=previewCSV;
+window.confirmImport=confirmImport;
+window.closeImportModal=closeImportModal;
+window.saveWeekly=saveWeekly;
+window.renderWeeklyHistory=renderWeeklyHistory;
+window.toggleWeeklyDetail=toggleWeeklyDetail;
+window.openWeeklyEdit=openWeeklyEdit;
+window.cancelWeeklyEdit=cancelWeeklyEdit;
+window.setWeeklyStars=setWeeklyStars;
+window.saveWeeklyEdit=saveWeeklyEdit;
+window.deleteWeekly=deleteWeekly;
+window.saveReflect=saveReflect;
+window.renderReflectHistory=renderReflectHistory;
+window.toggleReflectDetail=toggleReflectDetail;
+window.openReflectEdit=openReflectEdit;
+window.cancelReflectEdit=cancelReflectEdit;
+window.selectReflectEditMood=selectReflectEditMood;
+window.selectReflectEditFocus=selectReflectEditFocus;
+window.saveReflectEdit=saveReflectEdit;
+window.deleteReflect=deleteReflect;
+window.calcRisk=calcRisk;
+window.calcDailyLoss=calcDailyLoss;
+window.showRcPairList=showRcPairList;
+window.filterRcPairs=filterRcPairs;
+window.selectRcPair=selectRcPair;
+window.renderChecklist=renderChecklist;
+window.toggleRule=toggleRule;
+window.checkAll=checkAll;
+window.uncheckAll=uncheckAll;
+window.showAddRule=showAddRule;
+window.addRule=addRule;
+window.calNav=calNav;
+window.calGoToday=calGoToday;
+window.exportCSV=exportCSV;
+window.exportJSON=exportJSON;
+window.exportWeekly=exportWeekly;
+window.exportTradesPDF=exportTradesPDF;
+window.exportWeeklyPDF=exportWeeklyPDF;
+window.importJSON=importJSON;
+window.resetAll=resetAll;
+
 </script>
 
 <div class="mobile-nav">
