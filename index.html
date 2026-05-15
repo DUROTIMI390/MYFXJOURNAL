@@ -6,212 +6,146 @@
 <title>My FX Journal — Track Every Trade. Master Every Move.</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- Firebase -->
+<!-- Firebase via ES module — works on GitHub Pages -->
 <script type="module">
-// ── FIREBASE MODULE ──
-// All cross-scope access goes through window.* so the plain <script> below can share data.
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,GoogleAuthProvider,signOut}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import{getFirestore,doc,setDoc,getDoc,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import{getFirestore,doc,getDoc,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-const firebaseConfig={
-  apiKey:"AIzaSyCQ_OKxxSefvNXNCDeSYHs5QbkcYSENDmc",
-  authDomain:"my-fx-journal-343b7.firebaseapp.com",
-  projectId:"my-fx-journal-343b7",
-  storageBucket:"my-fx-journal-343b7.firebasestorage.app",
-  messagingSenderId:"782952680701",
-  appId:"1:782952680701:web:559c9b6d3a0c62df6d0294"
-};
+var fbApp=initializeApp({apiKey:"AIzaSyCQ_OKxxSefvNXNCDeSYHs5QbkcYSENDmc",authDomain:"my-fx-journal-343b7.firebaseapp.com",projectId:"my-fx-journal-343b7",storageBucket:"my-fx-journal-343b7.firebasestorage.app",messagingSenderId:"782952680701",appId:"1:782952680701:web:559c9b6d3a0c62df6d0294"});
+var fbAuth=getAuth(fbApp);
+var fbDb=getFirestore(fbApp);
 
-const fbApp=initializeApp(firebaseConfig);
-const auth=getAuth(fbApp);
-const db=getFirestore(fbApp);
-const googleProvider=new GoogleAuthProvider();
-
-// ── helpers that touch the DOM (safe to call any time) ──
-function _showCloudStatus(msg,ok){
-  var el=document.getElementById('cloud-status');
-  if(el){el.textContent=msg;el.style.color=ok?'var(--success)':'var(--gold)';}
-}
+function _showCloudStatus(msg,ok){var el=document.getElementById('cloud-status');if(el){el.textContent=msg;el.style.color=ok?'var(--success)':'var(--gold)';}}
 function _updateAuthUI(user){
   document.querySelectorAll('.login-trigger').forEach(function(b){b.style.display=user?'none':'flex';});
   document.querySelectorAll('.logout-trigger').forEach(function(b){b.style.display=user?'flex':'none';});
-  document.querySelectorAll('.auth-user-display').forEach(function(el){
-    if(user){el.textContent=user.displayName||user.email||'Signed in';el.style.display='block';}
-    else{el.style.display='none';}
-  });
+  document.querySelectorAll('.auth-user-display').forEach(function(el){if(user){el.textContent=user.displayName||user.email||'Signed in';el.style.display='block';}else{el.style.display='none';}});
 }
-function _setLoginLoading(on){
-  var btn=document.getElementById('login-submit-btn');
-  if(btn)btn.textContent=on?'Signing in…':'Sign In';
-  var gbtn=document.getElementById('google-signin-btn');
-  if(gbtn)gbtn.disabled=on;
+function _setLoginLoading(on){var btn=document.getElementById('login-submit-btn');if(btn)btn.textContent=on?'Signing in…':'Sign In';var gbtn=document.getElementById('google-signin-btn');if(gbtn)gbtn.disabled=on;}
+function _showLoginError(msg){var el=document.getElementById('login-error');if(el){el.textContent=msg;el.style.display=msg?'block':'none';}}
+function _closeLoginModal(){var m=document.getElementById('login-modal');if(m)m.classList.remove('open');}
+
+function cloudSave(){
+  if(!window._currentUser)return Promise.resolve();
+  var uid=window._currentUser.uid;
+  var batch=writeBatch(fbDb);
+  batch.set(doc(fbDb,'users',uid,'data','profile'),window.userProfile||{});
+  batch.set(doc(fbDb,'users',uid,'data','trades'),{list:window.trades||[]});
+  batch.set(doc(fbDb,'users',uid,'data','weeklies'),{list:window.weeklies||[]});
+  batch.set(doc(fbDb,'users',uid,'data','reflections'),{list:window.reflections||[]});
+  batch.set(doc(fbDb,'users',uid,'data','rules'),{list:window.rules||[]});
+  return batch.commit().catch(function(e){console.warn('Cloud save failed:',e);});
 }
-function _showLoginError(msg){
-  var el=document.getElementById('login-error');
-  if(el){el.textContent=msg;el.style.display='block';}
-}
-function _closeLoginModal(){
-  var m=document.getElementById('login-modal');
-  if(m)m.classList.remove('open');
+window.cloudSaveFn=function(){cloudSave().then(function(){_showCloudStatus('☁️ Saved',true);}).catch(function(){_showCloudStatus('☁️ Offline',false);});};
+
+function cloudLoad(){
+  if(!window._currentUser)return Promise.resolve();
+  var uid=window._currentUser.uid;
+  return Promise.all([
+    getDoc(doc(fbDb,'users',uid,'data','profile')),
+    getDoc(doc(fbDb,'users',uid,'data','trades')),
+    getDoc(doc(fbDb,'users',uid,'data','weeklies')),
+    getDoc(doc(fbDb,'users',uid,'data','reflections')),
+    getDoc(doc(fbDb,'users',uid,'data','rules'))
+  ]).then(function(r){
+    if(r[0].exists())Object.assign(window.userProfile,r[0].data());
+    if(r[1].exists()&&r[1].data().list)window.trades=r[1].data().list;
+    if(r[2].exists()&&r[2].data().list)window.weeklies=r[2].data().list;
+    if(r[3].exists()&&r[3].data().list)window.reflections=r[3].data().list;
+    if(r[4].exists()&&r[4].data().list)window.rules=r[4].data().list;
+  }).catch(function(e){console.warn('Cloud load failed:',e);});
 }
 
-// ── cloud save: reads data from window globals set by the plain script ──
-async function cloudSave(){
-  var user=window._currentUser;
-  if(!user)return;
-  try{
-    var uid=user.uid;
-    var batch=writeBatch(db);
-    batch.set(doc(db,'users',uid,'data','profile'),window.userProfile||{});
-    batch.set(doc(db,'users',uid,'data','trades'),{list:window.trades||[]});
-    batch.set(doc(db,'users',uid,'data','weeklies'),{list:window.weeklies||[]});
-    batch.set(doc(db,'users',uid,'data','reflections'),{list:window.reflections||[]});
-    batch.set(doc(db,'users',uid,'data','rules'),{list:window.rules||[]});
-    await batch.commit();
-  }catch(e){console.warn('Cloud save failed:',e);}
-}
-
-// ── cloud load: writes data into window globals ──
-async function cloudLoad(){
-  var user=window._currentUser;
-  if(!user)return;
-  try{
-    var uid=user.uid;
-    var results=await Promise.all([
-      getDoc(doc(db,'users',uid,'data','profile')),
-      getDoc(doc(db,'users',uid,'data','trades')),
-      getDoc(doc(db,'users',uid,'data','weeklies')),
-      getDoc(doc(db,'users',uid,'data','reflections')),
-      getDoc(doc(db,'users',uid,'data','rules')),
-    ]);
-    var prof=results[0],tr=results[1],we=results[2],re=results[3],ru=results[4];
-    if(prof.exists())Object.assign(window.userProfile,prof.data());
-    if(tr.exists()&&tr.data().list)window.trades=tr.data().list;
-    if(we.exists()&&we.data().list)window.weeklies=we.data().list;
-    if(re.exists()&&re.data().list)window.reflections=re.data().list;
-    if(ru.exists()&&ru.data().list)window.rules=ru.data().list;
-  }catch(e){console.warn('Cloud load failed:',e);}
-}
-
-// ── expose cloudSave so the plain script can call it after local save ──
-window.cloudSaveFn=async function(){
-  await cloudSave();
-  _showCloudStatus('☁️ Saved',true);
-};
-
-// ── auth state listener ──
-onAuthStateChanged(auth,async function(user){
+onAuthStateChanged(fbAuth,function(user){
   if(user){
     window._currentUser=user;
     _showCloudStatus('☁️ Syncing…',false);
-    // Wait for the plain script to be ready (it sets window._appReady)
-    var waited=0;
-    while(!window._appReady&&waited<4000){
-      await new Promise(function(r){setTimeout(r,50);});
-      waited+=50;
+    function tryLoad(w){
+      if(window._appReady){
+        cloudLoad().then(function(){
+          if(window.appSave)window.appSave();
+          _showCloudStatus('☁️ Synced',true);
+          _updateAuthUI(user);
+          if(window.userProfile&&window.userProfile.name){
+            document.getElementById('landing').classList.add('slide-out');
+            document.getElementById('app').classList.add('slide-in');
+            if(window.applyProfile)window.applyProfile();
+            if(window.renderDashboard)window.renderDashboard();
+            if(window.renderChecklist)window.renderChecklist();
+            if(window.updateChecklistWarning)window.updateChecklistWarning();
+          }else{
+            document.getElementById('landing').classList.add('slide-out');
+            document.getElementById('onboarding').classList.add('slide-in');
+          }
+        });
+      }else if(w<4000){setTimeout(function(){tryLoad(w+50);},50);}
     }
-    await cloudLoad();
-    if(window.appSave)window.appSave();
-    _showCloudStatus('☁️ Synced',true);
-    _updateAuthUI(user);
-    if(window.userProfile&&window.userProfile.name){
-      document.getElementById('landing').classList.add('slide-out');
-      document.getElementById('app').classList.add('slide-in');
-      if(window.applyProfile)window.applyProfile();
-      if(window.renderDashboard)window.renderDashboard();
-      if(window.renderChecklist)window.renderChecklist();
-      if(window.updateChecklistWarning)window.updateChecklistWarning();
-    }else{
-      document.getElementById('landing').classList.add('slide-out');
-      document.getElementById('onboarding').classList.add('slide-in');
-    }
+    tryLoad(0);
   }else{
-    window._currentUser=null;
-    _updateAuthUI(null);
-    _showCloudStatus('',false);
+    window._currentUser=null;_updateAuthUI(null);_showCloudStatus('',false);
   }
 });
 
-// ── exposed auth actions ──
-window.fbSignInGoogle=async function(){
-  try{
-    _setLoginLoading(true);
-    _showLoginError('');
-    await signInWithPopup(auth,googleProvider);
-    _closeLoginModal();
-  }catch(e){
-    _showLoginError(e.message);
-    _setLoginLoading(false);
-  }
-};
-
-window.fbSignInEmail=async function(){
+// ── Auth actions exposed on window AND as named functions ──
+function fbSignInGoogle(){
+  _setLoginLoading(true);_showLoginError('');
+  signInWithPopup(fbAuth,new GoogleAuthProvider())
+    .then(function(){_closeLoginModal();})
+    .catch(function(e){_showLoginError(e.message);_setLoginLoading(false);});
+}
+function fbSignInEmail(){
   var email=document.getElementById('login-email').value.trim();
   var pass=document.getElementById('login-pass').value;
   if(!email||!pass){_showLoginError('Please enter email and password.');return;}
-  try{
-    _setLoginLoading(true);
-    _showLoginError('');
-    await signInWithEmailAndPassword(auth,email,pass);
-    _closeLoginModal();
-  }catch(e){
-    var msg=
-      e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'
-        ?'Invalid email or password.'
-      :e.code==='auth/invalid-email'?'Invalid email address.'
-      :e.message;
-    _showLoginError(msg);
-    _setLoginLoading(false);
-  }
-};
-
-window.fbSignUp=async function(){
+  _setLoginLoading(true);_showLoginError('');
+  signInWithEmailAndPassword(fbAuth,email,pass)
+    .then(function(){_closeLoginModal();})
+    .catch(function(e){
+      var msg=e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Invalid email or password.':e.code==='auth/invalid-email'?'Invalid email address.':e.message;
+      _showLoginError(msg);_setLoginLoading(false);
+    });
+}
+function fbSignUp(){
   var email=document.getElementById('login-email').value.trim();
   var pass=document.getElementById('login-pass').value;
   if(!email||!pass){_showLoginError('Please enter email and password.');return;}
   if(pass.length<6){_showLoginError('Password must be at least 6 characters.');return;}
-  try{
-    _setLoginLoading(true);
-    _showLoginError('');
-    await createUserWithEmailAndPassword(auth,email,pass);
-    _closeLoginModal();
-  }catch(e){
-    var msg=
-      e.code==='auth/email-already-in-use'?'Account already exists. Try signing in.'
-      :e.code==='auth/weak-password'?'Password is too weak.'
-      :e.message;
-    _showLoginError(msg);
-    _setLoginLoading(false);
-  }
-};
-
-window.fbSignOut=async function(){
-  // Inline confirm bar instead of window.confirm (blocked on GitHub Pages)
+  _setLoginLoading(true);_showLoginError('');
+  createUserWithEmailAndPassword(fbAuth,email,pass)
+    .then(function(){_closeLoginModal();})
+    .catch(function(e){
+      var msg=e.code==='auth/email-already-in-use'?'Account already exists. Try signing in.':e.code==='auth/weak-password'?'Password is too weak.':e.message;
+      _showLoginError(msg);_setLoginLoading(false);
+    });
+}
+function fbSignOut(){
   var bar=document.getElementById('signout-confirm-bar');
   if(bar){
-    // second click = confirmed
     bar.remove();
-    await signOut(auth);
-    window._currentUser=null;
-    document.getElementById('app').classList.remove('slide-in');
-    document.getElementById('landing').classList.remove('slide-out');
+    signOut(fbAuth).then(function(){
+      window._currentUser=null;
+      document.getElementById('app').classList.remove('slide-in');
+      document.getElementById('landing').classList.remove('slide-out');
+    });
     return;
   }
   bar=document.createElement('div');
   bar.id='signout-confirm-bar';
   bar.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text);box-shadow:0 4px 24px rgba(0,0,0,0.5);min-width:280px;';
-  bar.innerHTML=
-    '<span style="flex:1">Sign out? Your data is saved to the cloud.</span>'+
-    '<button class="btn btn-sm btn-danger" onclick="fbSignOut()">Sign Out</button>'+
-    '<button class="btn btn-sm btn-outline" onclick="document.getElementById('signout-confirm-bar').remove()">Cancel</button>';
+  bar.innerHTML='<span style="flex:1">Sign out? Your data is saved to the cloud.</span><button class="btn btn-sm btn-danger" onclick="fbSignOut()">Sign Out</button><button class="btn btn-sm btn-outline" onclick="this.parentNode.remove()">Cancel</button>';
   document.body.appendChild(bar);
-  // auto-dismiss after 6 seconds
   setTimeout(function(){var b=document.getElementById('signout-confirm-bar');if(b)b.remove();},6000);
-};
+}
+function closeLoginModal(){var m=document.getElementById('login-modal');if(m)m.classList.remove('open');}
 
-window.closeLoginModal=_closeLoginModal;
-</script>
-<style>
+// Assign to window so onclick="fbSignInGoogle()" works from HTML
+window.fbSignInGoogle=fbSignInGoogle;
+window.fbSignInEmail=fbSignInEmail;
+window.fbSignUp=fbSignUp;
+window.fbSignOut=fbSignOut;
+window.closeLoginModal=closeLoginModal;
+</script><style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{--gold:#f5c842;--gold-dim:#c9a227;--gold-muted:#a08c3a;--bg:#0a0a0a;--bg2:#111111;--bg3:#161200;--border:#2a2200;--text:#e2e8f0;--muted:#7a6a4a;--danger:#f87171;--success:#6ee7b7}
 body.light{--bg:#f5f0e8;--bg2:#ffffff;--bg3:#fdf8ee;--border:#e0d5b0;--text:#1a1200;--muted:#8a7a50;--danger:#dc2626;--success:#16a34a}
@@ -1148,6 +1082,53 @@ window._geminiInit=function(apiKey){
 window._geminiInit('AIzaSyDQUogaPwveZ-G_mv0VnyLI9yXy77GdgGM');
 </script>
 
+
+
+
+<div class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <div class="mob-nav-item active" id="mob-dashboard" onclick="mobNav('dashboard','Dashboard')">
+      <span class="mob-nav-icon">📊</span>
+      <span>Home</span>
+    </div>
+    <div class="mob-nav-item" id="mob-log" onclick="mobNav('log','Log Trade')">
+      <span class="mob-nav-icon">📝</span>
+      <span>Log</span>
+    </div>
+    <div class="mob-nav-item" id="mob-trades" onclick="mobNav('trades','Trade History')">
+      <span class="mob-nav-icon">📋</span>
+      <span>History</span>
+    </div>
+    <div class="mob-nav-item" id="mob-stats" onclick="mobNav('stats','Advanced Stats')">
+      <span class="mob-nav-icon">📈</span>
+      <span>Stats</span>
+    </div>
+    <div class="mob-nav-item" id="mob-risk" onclick="mobNav('risk','Risk Calculator')">
+      <span class="mob-nav-icon">🧮</span>
+      <span>Risk</span>
+    </div>
+    <div class="mob-nav-item" id="mob-more" onclick="toggleMore()">
+      <span class="mob-nav-icon">⋯</span>
+      <span>More</span>
+    </div>
+  </div>
+</div>
+
+<div class="mob-more-menu" id="mob-more-menu">
+  <div class="mob-more-grid">
+    <div class="mob-more-item" onclick="mobNav('calendar','P&L Calendar');toggleMore()">📅 Calendar</div>
+    <div class="mob-more-item" onclick="mobNav('heatmap','Session Heatmap');toggleMore()">🔥 Heatmap</div>
+    <div class="mob-more-item" onclick="mobNav('weekly','Weekly Review');toggleMore()">◷ Weekly</div>
+    <div class="mob-more-item" onclick="mobNav('reflect','Self Reflection');toggleMore()">◉ Reflect</div>
+    <div class="mob-more-item" onclick="mobNav('checklist','Rules Checklist');toggleMore()">✓ Checklist</div>
+    <div class="mob-more-item" onclick="mobNav('import','Import Trades');toggleMore()">⬆️ Import</div>
+    <div class="mob-more-item" onclick="mobNav('export','Export & Backup');toggleMore()">↓ Export</div>
+    <div class="mob-more-item login-trigger" onclick="showLogin();toggleMore()">🔑 Sign In</div>
+  </div>
+</div>
+
+</div><!-- end #app -->
+
 <script>
 // ── HELPERS ──
 function escHtml(str){
@@ -1261,13 +1242,6 @@ function save(){
   if(window.cloudSaveFn)window.cloudSaveFn();
 }
 window.appSave=save;
-window._appReady=true;
-// Expose app data so Firebase module (type="module" scope) can read/write them
-window.trades=trades;
-window.weeklies=weeklies;
-window.reflections=reflections;
-window.rules=rules;
-window.userProfile=userProfile;
 
 function load(){
   try{
@@ -1313,16 +1287,22 @@ function startOnboarding(){
 
 function showLogin(){document.getElementById('login-modal').classList.add('open')}
 
-// ── BOOT ──
-load();loadTheme();
-document.getElementById('f-date').value=today();
-document.getElementById('w-date').value=today();
-document.getElementById('r-date').value=today();
-if(userProfile.name){
-  document.getElementById('landing').classList.add('slide-out');
-  document.getElementById('app').classList.add('slide-in');
-  applyProfile();renderDashboard();renderChecklist();updateChecklistWarning();
-}
+// ── BOOT — wrapped in DOMContentLoaded so all DOM elements exist ──
+document.addEventListener('DOMContentLoaded',function(){
+  load();loadTheme();
+  window._appReady=true;
+  // Sync window globals for Firebase module
+  window.trades=trades;window.weeklies=weeklies;
+  window.reflections=reflections;window.rules=rules;window.userProfile=userProfile;
+  var fd=document.getElementById('f-date');if(fd)fd.value=today();
+  var wd=document.getElementById('w-date');if(wd)wd.value=today();
+  var rd=document.getElementById('r-date');if(rd)rd.value=today();
+  if(userProfile.name){
+    document.getElementById('landing').classList.add('slide-out');
+    document.getElementById('app').classList.add('slide-in');
+    applyProfile();renderDashboard();renderChecklist();updateChecklistWarning();
+  }
+});
 
 // ── ONBOARDING ──
 function goBack(){
@@ -1646,7 +1626,7 @@ function deleteTrade(id){
   bar.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;background:#2e0d0d;border:1px solid #5a1a1a;border-radius:8px;margin-top:12px;font-size:13px;color:var(--danger)';
   bar.innerHTML='<span style="flex:1">Delete this trade permanently?</span>'+
     '<button class="btn btn-sm btn-danger" onclick="deleteTrade('+id+')">Yes, delete</button>'+
-    '<button class="btn btn-sm btn-outline" onclick="this.closest('.del-confirm-t').remove()">Cancel</button>';
+    '<button class="btn btn-sm btn-outline" onclick="this.parentNode.remove()">Cancel</button>';
   modal.appendChild(bar);
 }
 function closeModal(){document.getElementById('modal').classList.remove('open')}
@@ -2161,7 +2141,7 @@ function resetAll(){
   bar.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;background:#2e0d0d;border:1px solid #5a1a1a;border-radius:8px;margin-top:12px;font-size:13px;color:var(--danger)';
   bar.innerHTML='<span style="flex:1">⚠️ This will erase ALL your trades, reviews and settings. Are you sure?</span>'+
     '<button class="btn btn-sm btn-danger" onclick="resetAll()">Yes, reset everything</button>'+
-    '<button class="btn btn-sm btn-outline" onclick="this.closest('.del-confirm-reset').remove()">Cancel</button>';
+    '<button class="btn btn-sm btn-outline" onclick="this.parentNode.remove()">Cancel</button>';
   container.appendChild(bar);
 }
 
@@ -2241,49 +2221,4 @@ window.importJSON=importJSON;
 window.resetAll=resetAll;
 
 </script>
-
-<div class="mobile-nav">
-  <div class="mobile-nav-inner">
-    <div class="mob-nav-item active" id="mob-dashboard" onclick="mobNav('dashboard','Dashboard')">
-      <span class="mob-nav-icon">📊</span>
-      <span>Home</span>
-    </div>
-    <div class="mob-nav-item" id="mob-log" onclick="mobNav('log','Log Trade')">
-      <span class="mob-nav-icon">📝</span>
-      <span>Log</span>
-    </div>
-    <div class="mob-nav-item" id="mob-trades" onclick="mobNav('trades','Trade History')">
-      <span class="mob-nav-icon">📋</span>
-      <span>History</span>
-    </div>
-    <div class="mob-nav-item" id="mob-stats" onclick="mobNav('stats','Advanced Stats')">
-      <span class="mob-nav-icon">📈</span>
-      <span>Stats</span>
-    </div>
-    <div class="mob-nav-item" id="mob-risk" onclick="mobNav('risk','Risk Calculator')">
-      <span class="mob-nav-icon">🧮</span>
-      <span>Risk</span>
-    </div>
-    <div class="mob-nav-item" id="mob-more" onclick="toggleMore()">
-      <span class="mob-nav-icon">⋯</span>
-      <span>More</span>
-    </div>
-  </div>
-</div>
-
-<div class="mob-more-menu" id="mob-more-menu">
-  <div class="mob-more-grid">
-    <div class="mob-more-item" onclick="mobNav('calendar','P&L Calendar');toggleMore()">📅 Calendar</div>
-    <div class="mob-more-item" onclick="mobNav('heatmap','Session Heatmap');toggleMore()">🔥 Heatmap</div>
-    <div class="mob-more-item" onclick="mobNav('weekly','Weekly Review');toggleMore()">◷ Weekly</div>
-    <div class="mob-more-item" onclick="mobNav('reflect','Self Reflection');toggleMore()">◉ Reflect</div>
-    <div class="mob-more-item" onclick="mobNav('checklist','Rules Checklist');toggleMore()">✓ Checklist</div>
-    <div class="mob-more-item" onclick="mobNav('import','Import Trades');toggleMore()">⬆️ Import</div>
-    <div class="mob-more-item" onclick="mobNav('export','Export & Backup');toggleMore()">↓ Export</div>
-    <div class="mob-more-item login-trigger" onclick="showLogin();toggleMore()">🔑 Sign In</div>
-  </div>
-</div>
-
-</div><!-- end #app -->
 </body>
-</html>
