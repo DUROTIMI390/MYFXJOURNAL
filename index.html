@@ -64,6 +64,11 @@ onAuthStateChanged(fbAuth,function(user){
     function tryLoad(w){
       if(window._appReady){
         cloudLoad().then(function(){
+          // Restore startingBalance from cloud-synced userProfile
+          if(window.userProfile&&window.userProfile._startingBalance!==undefined){
+            window.startingBalance=window.userProfile._startingBalance;
+            localStorage.setItem('startingBalance',String(window.startingBalance));
+          }
           if(window.appSave)window.appSave();
           _showCloudStatus('☁️ Synced',true);
           _updateAuthUI(user);
@@ -610,7 +615,10 @@ body.light .score-btn.selected{background:#fdf3cc}
 <!-- ════ APP ════ -->
 <div id="app">
 <div class="mob-header">
-  <div><div class="mob-header-title" id="mob-page-title">Dashboard</div><div class="mob-header-name" id="mob-user-name"></div></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button onclick="goBack()" style="background:none;border:none;color:var(--gold);font-size:13px;cursor:pointer;padding:4px 2px;display:flex;align-items:center;gap:4px;white-space:nowrap">← Home</button>
+    <div><div class="mob-header-title" id="mob-page-title">Dashboard</div><div class="mob-header-name" id="mob-user-name"></div></div>
+  </div>
   <div style="display:flex;gap:8px;align-items:center">
     <span id="mob-theme-btn" onclick="toggleTheme()" style="cursor:pointer;font-size:18px">🌙</span>
     <svg width="26" height="26" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="7" fill="#1a1500"/><ellipse cx="9" cy="17" rx="4" ry="3" fill="#f5c842"/><circle cx="13.5" cy="14.5" r="2.5" fill="#f5c842"/></svg>
@@ -1124,6 +1132,7 @@ window._geminiInit('AIzaSyDQUogaPwveZ-G_mv0VnyLI9yXy77GdgGM');
     <div class="mob-more-item" onclick="mobNav('import','Import Trades');toggleMore()">⬆️ Import</div>
     <div class="mob-more-item" onclick="mobNav('export','Export & Backup');toggleMore()">↓ Export</div>
     <div class="mob-more-item login-trigger" onclick="showLogin();toggleMore()">🔑 Sign In</div>
+    <div class="mob-more-item logout-trigger" onclick="fbSignOut();toggleMore()" style="display:none;color:var(--danger)">⬡ Sign Out</div>
   </div>
 </div>
 
@@ -1232,12 +1241,15 @@ function save(){
   window.reflections=reflections;
   window.rules=rules;
   window.userProfile=userProfile;
+  // Persist startingBalance inside userProfile so it survives logout/login
+  userProfile._startingBalance=startingBalance;
   try{
     localStorage.setItem('fxj_trades',JSON.stringify(trades));
     localStorage.setItem('fxj_weeklies',JSON.stringify(weeklies));
     localStorage.setItem('fxj_reflections',JSON.stringify(reflections));
     localStorage.setItem('fxj_rules',JSON.stringify(rules));
     localStorage.setItem('fxj_profile',JSON.stringify(userProfile));
+    localStorage.setItem('startingBalance',String(startingBalance));
   }catch(e){}
   if(window.cloudSaveFn)window.cloudSaveFn();
 }
@@ -1250,6 +1262,10 @@ function load(){
     var r=localStorage.getItem('fxj_reflections');if(r)reflections=JSON.parse(r);
     var ru=localStorage.getItem('fxj_rules');if(ru)rules=JSON.parse(ru);
     var p=localStorage.getItem('fxj_profile');if(p)userProfile=JSON.parse(p);
+    // Restore startingBalance — check userProfile first (survives cloud sync), then own key
+    var sb=userProfile._startingBalance;
+    if(sb===undefined){var sbk=localStorage.getItem('startingBalance');if(sbk!==null)sb=parseFloat(sbk);}
+    if(sb!==undefined&&!isNaN(sb))startingBalance=sb;
   }catch(e){}
   // Keep window globals in sync after load
   window.trades=trades;
@@ -1257,6 +1273,7 @@ function load(){
   window.reflections=reflections;
   window.rules=rules;
   window.userProfile=userProfile;
+  window.startingBalance=startingBalance;
 }
 
 // ── THEME ──
@@ -1290,6 +1307,9 @@ function showLogin(){document.getElementById('login-modal').classList.add('open'
 // ── BOOT — wrapped in DOMContentLoaded so all DOM elements exist ──
 document.addEventListener('DOMContentLoaded',function(){
   load();loadTheme();
+  // Show login buttons immediately — Firebase auth will update them once it resolves
+  document.querySelectorAll('.login-trigger').forEach(function(b){b.style.display='flex';});
+  document.querySelectorAll('.logout-trigger').forEach(function(b){b.style.display='none';});
   window._appReady=true;
   // Sync window globals for Firebase module
   window.trades=trades;window.weeklies=weeklies;
@@ -1440,6 +1460,8 @@ function saveStartBal(){
 }
 
 function updateBalanceTiles(t){
+  // Always read latest value — window.startingBalance is updated by cloudLoad
+  if(window.startingBalance!==undefined)startingBalance=window.startingBalance;
   var totalPnl=t.reduce(function(s,x){return s+(parseFloat(x.pnl)||0)},0);
   var todayStr=new Date().toISOString().slice(0,10);
   var todayTrades=t.filter(function(x){return x.date===todayStr});
