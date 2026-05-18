@@ -6,151 +6,10 @@
 <title>My FX Journal — Track Every Trade. Master Every Move.</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- Firebase -->
-<!-- Firebase via ES module — works on GitHub Pages -->
-<script type="module">
-import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signInWithPopup,GoogleAuthProvider,signOut}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import{getFirestore,doc,getDoc,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-var fbApp=initializeApp({apiKey:"AIzaSyCQ_OKxxSefvNXNCDeSYHs5QbkcYSENDmc",authDomain:"my-fx-journal-343b7.firebaseapp.com",projectId:"my-fx-journal-343b7",storageBucket:"my-fx-journal-343b7.firebasestorage.app",messagingSenderId:"782952680701",appId:"1:782952680701:web:559c9b6d3a0c62df6d0294"});
-var fbAuth=getAuth(fbApp);
-var fbDb=getFirestore(fbApp);
-
-function _showCloudStatus(msg,ok){var el=document.getElementById('cloud-status');if(el){el.textContent=msg;el.style.color=ok?'var(--success)':'var(--gold)';}}
-function _updateAuthUI(user){
-  document.querySelectorAll('.login-trigger').forEach(function(b){b.style.display=user?'none':'flex';});
-  document.querySelectorAll('.logout-trigger').forEach(function(b){b.style.display=user?'flex':'none';});
-  document.querySelectorAll('.auth-user-display').forEach(function(el){if(user){el.textContent=user.displayName||user.email||'Signed in';el.style.display='block';}else{el.style.display='none';}});
-}
-function _setLoginLoading(on){var btn=document.getElementById('login-submit-btn');if(btn)btn.textContent=on?'Signing in…':'Sign In';var gbtn=document.getElementById('google-signin-btn');if(gbtn)gbtn.disabled=on;}
-function _showLoginError(msg){var el=document.getElementById('login-error');if(el){el.textContent=msg;el.style.display=msg?'block':'none';}}
-function _closeLoginModal(){var m=document.getElementById('login-modal');if(m)m.classList.remove('open');}
-
-function cloudSave(){
-  if(!window._currentUser)return Promise.resolve();
-  var uid=window._currentUser.uid;
-  var batch=writeBatch(fbDb);
-  batch.set(doc(fbDb,'users',uid,'data','profile'),window.userProfile||{});
-  batch.set(doc(fbDb,'users',uid,'data','trades'),{list:window.trades||[]});
-  batch.set(doc(fbDb,'users',uid,'data','weeklies'),{list:window.weeklies||[]});
-  batch.set(doc(fbDb,'users',uid,'data','reflections'),{list:window.reflections||[]});
-  batch.set(doc(fbDb,'users',uid,'data','rules'),{list:window.rules||[]});
-  return batch.commit().catch(function(e){console.warn('Cloud save failed:',e);});
-}
-window.cloudSaveFn=function(){cloudSave().then(function(){_showCloudStatus('☁️ Saved',true);}).catch(function(){_showCloudStatus('☁️ Offline',false);});};
-
-function cloudLoad(){
-  if(!window._currentUser)return Promise.resolve();
-  var uid=window._currentUser.uid;
-  return Promise.all([
-    getDoc(doc(fbDb,'users',uid,'data','profile')),
-    getDoc(doc(fbDb,'users',uid,'data','trades')),
-    getDoc(doc(fbDb,'users',uid,'data','weeklies')),
-    getDoc(doc(fbDb,'users',uid,'data','reflections')),
-    getDoc(doc(fbDb,'users',uid,'data','rules'))
-  ]).then(function(r){
-    if(r[0].exists())Object.assign(window.userProfile,r[0].data());
-    if(r[1].exists()&&r[1].data().list)window.trades=r[1].data().list;
-    if(r[2].exists()&&r[2].data().list)window.weeklies=r[2].data().list;
-    if(r[3].exists()&&r[3].data().list)window.reflections=r[3].data().list;
-    if(r[4].exists()&&r[4].data().list)window.rules=r[4].data().list;
-  }).catch(function(e){console.warn('Cloud load failed:',e);});
-}
-
-onAuthStateChanged(fbAuth,function(user){
-  if(user){
-    window._currentUser=user;
-    _showCloudStatus('☁️ Syncing…',false);
-    function tryLoad(w){
-      if(window._appReady){
-        cloudLoad().then(function(){
-          // Restore startingBalance from cloud-synced userProfile
-          if(window.userProfile&&window.userProfile._startingBalance!==undefined){
-            window.startingBalance=window.userProfile._startingBalance;
-            localStorage.setItem('startingBalance',String(window.startingBalance));
-          }
-          if(window.appSave)window.appSave();
-          _showCloudStatus('☁️ Synced',true);
-          _updateAuthUI(user);
-          if(window.userProfile&&window.userProfile.name){
-            document.getElementById('landing').classList.add('slide-out');
-            document.getElementById('app').classList.add('slide-in');
-            if(window.applyProfile)window.applyProfile();
-            if(window.renderDashboard)window.renderDashboard();
-            if(window.renderChecklist)window.renderChecklist();
-            if(window.updateChecklistWarning)window.updateChecklistWarning();
-          }else{
-            document.getElementById('landing').classList.add('slide-out');
-            document.getElementById('onboarding').classList.add('slide-in');
-          }
-        });
-      }else if(w<4000){setTimeout(function(){tryLoad(w+50);},50);}
-    }
-    tryLoad(0);
-  }else{
-    window._currentUser=null;_updateAuthUI(null);_showCloudStatus('',false);
-  }
-});
-
-// ── Auth actions exposed on window AND as named functions ──
-function fbSignInGoogle(){
-  _setLoginLoading(true);_showLoginError('');
-  signInWithPopup(fbAuth,new GoogleAuthProvider())
-    .then(function(){_closeLoginModal();})
-    .catch(function(e){_showLoginError(e.message);_setLoginLoading(false);});
-}
-function fbSignInEmail(){
-  var email=document.getElementById('login-email').value.trim();
-  var pass=document.getElementById('login-pass').value;
-  if(!email||!pass){_showLoginError('Please enter email and password.');return;}
-  _setLoginLoading(true);_showLoginError('');
-  signInWithEmailAndPassword(fbAuth,email,pass)
-    .then(function(){_closeLoginModal();})
-    .catch(function(e){
-      var msg=e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Invalid email or password.':e.code==='auth/invalid-email'?'Invalid email address.':e.message;
-      _showLoginError(msg);_setLoginLoading(false);
-    });
-}
-function fbSignUp(){
-  var email=document.getElementById('login-email').value.trim();
-  var pass=document.getElementById('login-pass').value;
-  if(!email||!pass){_showLoginError('Please enter email and password.');return;}
-  if(pass.length<6){_showLoginError('Password must be at least 6 characters.');return;}
-  _setLoginLoading(true);_showLoginError('');
-  createUserWithEmailAndPassword(fbAuth,email,pass)
-    .then(function(){_closeLoginModal();})
-    .catch(function(e){
-      var msg=e.code==='auth/email-already-in-use'?'Account already exists. Try signing in.':e.code==='auth/weak-password'?'Password is too weak.':e.message;
-      _showLoginError(msg);_setLoginLoading(false);
-    });
-}
-function fbSignOut(){
-  var bar=document.getElementById('signout-confirm-bar');
-  if(bar){
-    bar.remove();
-    signOut(fbAuth).then(function(){
-      window._currentUser=null;
-      document.getElementById('app').classList.remove('slide-in');
-      document.getElementById('landing').classList.remove('slide-out');
-    });
-    return;
-  }
-  bar=document.createElement('div');
-  bar.id='signout-confirm-bar';
-  bar.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text);box-shadow:0 4px 24px rgba(0,0,0,0.5);min-width:280px;';
-  bar.innerHTML='<span style="flex:1">Sign out? Your data is saved to the cloud.</span><button class="btn btn-sm btn-danger" onclick="fbSignOut()">Sign Out</button><button class="btn btn-sm btn-outline" onclick="this.parentNode.remove()">Cancel</button>';
-  document.body.appendChild(bar);
-  setTimeout(function(){var b=document.getElementById('signout-confirm-bar');if(b)b.remove();},6000);
-}
-function closeLoginModal(){var m=document.getElementById('login-modal');if(m)m.classList.remove('open');}
-
-// Assign to window so onclick="fbSignInGoogle()" works from HTML
-window.fbSignInGoogle=fbSignInGoogle;
-window.fbSignInEmail=fbSignInEmail;
-window.fbSignUp=fbSignUp;
-window.fbSignOut=fbSignOut;
-window.closeLoginModal=closeLoginModal;
-</script><style>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script><style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{--gold:#f5c842;--gold-dim:#c9a227;--gold-muted:#a08c3a;--bg:#0a0a0a;--bg2:#111111;--bg3:#161200;--border:#2a2200;--text:#e2e8f0;--muted:#7a6a4a;--danger:#f87171;--success:#6ee7b7}
 body.light{--bg:#f5f0e8;--bg2:#ffffff;--bg3:#fdf8ee;--border:#e0d5b0;--text:#1a1200;--muted:#8a7a50;--danger:#dc2626;--success:#16a34a}
@@ -1081,14 +940,7 @@ body.light .score-btn.selected{background:#fdf3cc}
   </div>
 </div>
 
-<script type="module">
-import{GoogleGenerativeAI}from'https://esm.sh/@google/generative-ai@0.21.0';
-window._geminiInit=function(apiKey){
-  const genAI=new GoogleGenerativeAI(apiKey);
-  window._geminiModel=genAI.getGenerativeModel({model:'gemini-2.0-flash'});
-};
-window._geminiInit('AIzaSyDQUogaPwveZ-G_mv0VnyLI9yXy77GdgGM');
-</script>
+
 
 
 
@@ -1139,6 +991,195 @@ window._geminiInit('AIzaSyDQUogaPwveZ-G_mv0VnyLI9yXy77GdgGM');
 </div><!-- end #app -->
 
 <script>
+// ══════════════════════════════════════════════════════
+// ── FIREBASE SETUP (plain script — true globals) ──
+// ══════════════════════════════════════════════════════
+var _fbApp, _fbAuth, _fbDb;
+function _initFirebase() {
+  try {
+    if (typeof firebase === 'undefined') { console.warn('Firebase SDK not loaded'); return; }
+    if (!firebase.apps.length) {
+      _fbApp = firebase.initializeApp({
+        apiKey:"AIzaSyCQ_OKxxSefvNXNCDeSYHs5QbkcYSENDmc",
+        authDomain:"my-fx-journal-343b7.firebaseapp.com",
+        projectId:"my-fx-journal-343b7",
+        storageBucket:"my-fx-journal-343b7.firebasestorage.app",
+        messagingSenderId:"782952680701",
+        appId:"1:782952680701:web:559c9b6d3a0c62df6d0294"
+      });
+    } else {
+      _fbApp = firebase.apps[0];
+    }
+    _fbAuth = firebase.auth();
+    _fbDb   = firebase.firestore();
+    _initFirebaseListeners();
+  } catch(e) { console.warn('Firebase init failed:', e); }
+}
+
+function _showCloudStatus(msg, ok) {
+  var el = document.getElementById('cloud-status');
+  if (el) { el.textContent = msg; el.style.color = ok ? 'var(--success)' : 'var(--gold)'; }
+}
+function _updateAuthUI(user) {
+  document.querySelectorAll('.login-trigger').forEach(function(b) { b.style.display = user ? 'none' : 'flex'; });
+  document.querySelectorAll('.logout-trigger').forEach(function(b) { b.style.display = user ? 'flex' : 'none'; });
+  document.querySelectorAll('.auth-user-display').forEach(function(el) {
+    if (user) { el.textContent = user.displayName || user.email || 'Signed in'; el.style.display = 'block'; }
+    else { el.style.display = 'none'; }
+  });
+}
+function _setLoginLoading(on) {
+  var btn = document.getElementById('login-submit-btn');
+  if (btn) btn.textContent = on ? 'Signing in…' : 'Sign In';
+  var gbtn = document.getElementById('google-signin-btn');
+  if (gbtn) gbtn.disabled = on;
+}
+function _showLoginError(msg) {
+  var el = document.getElementById('login-error');
+  if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+}
+function closeLoginModal() {
+  var m = document.getElementById('login-modal');
+  if (m) m.classList.remove('open');
+}
+
+// ── Cloud save ──
+function cloudSave() {
+  if (!window._currentUser || !_fbDb) return;
+  try {
+    var uid = window._currentUser.uid;
+    var db  = _fbDb;
+    var b   = db.batch();
+    var base = db.collection('users').doc(uid).collection('data');
+    var prof = Object.assign({}, window.userProfile || {});
+    prof._startingBalance = startingBalance;
+    b.set(base.doc('profile'),     prof);
+    b.set(base.doc('trades'),      { list: window.trades      || [] });
+    b.set(base.doc('weeklies'),    { list: window.weeklies    || [] });
+    b.set(base.doc('reflections'), { list: window.reflections || [] });
+    b.set(base.doc('rules'),       { list: window.rules       || [] });
+    b.commit()
+      .then(function()  { _showCloudStatus('☁️ Saved', true);    })
+      .catch(function() { _showCloudStatus('☁️ Offline', false); });
+  } catch(e) { console.warn('cloudSave error:', e); }
+}
+window.cloudSaveFn = cloudSave;
+
+// ── Cloud load ──
+function cloudLoad(uid, cb) {
+  if (!_fbDb) { if (cb) cb(); return; }
+  var base = _fbDb.collection('users').doc(uid).collection('data');
+  Promise.all([
+    base.doc('profile').get(),
+    base.doc('trades').get(),
+    base.doc('weeklies').get(),
+    base.doc('reflections').get(),
+    base.doc('rules').get()
+  ]).then(function(r) {
+    if (r[0].exists) {
+      var p = r[0].data();
+      Object.assign(window.userProfile, p);
+      Object.assign(userProfile, p);
+      if (p._startingBalance !== undefined) {
+        startingBalance = p._startingBalance;
+        window.startingBalance = startingBalance;
+        localStorage.setItem('startingBalance', String(startingBalance));
+      }
+    }
+    if (r[1].exists && r[1].data().list) { trades      = r[1].data().list; window.trades      = trades;      }
+    if (r[2].exists && r[2].data().list) { weeklies    = r[2].data().list; window.weeklies    = weeklies;    }
+    if (r[3].exists && r[3].data().list) { reflections = r[3].data().list; window.reflections = reflections; }
+    if (r[4].exists && r[4].data().list) { rules       = r[4].data().list; window.rules       = rules;       }
+    if (cb) cb();
+  }).catch(function(e) { console.warn('cloudLoad error:', e); if (cb) cb(); });
+}
+
+// ── Auth state ──
+function _initFirebaseListeners() {
+  _fbAuth.onAuthStateChanged(function(user) {
+    if (user) {
+      window._currentUser = user;
+      _showCloudStatus('☁️ Syncing…', false);
+      cloudLoad(user.uid, function() {
+        save();
+        _showCloudStatus('☁️ Synced', true);
+        _updateAuthUI(user);
+        if (userProfile && userProfile.name) {
+          document.getElementById('landing').classList.add('slide-out');
+          document.getElementById('app').classList.add('slide-in');
+          applyProfile(); renderDashboard(); renderChecklist(); updateChecklistWarning();
+        } else {
+          document.getElementById('landing').classList.add('slide-out');
+          document.getElementById('onboarding').classList.add('slide-in');
+        }
+      });
+    } else {
+      window._currentUser = null;
+      _updateAuthUI(null);
+      _showCloudStatus('', false);
+    }
+  });
+}
+
+// ── Auth actions — plain global functions, callable from any onclick ──
+function fbSignInGoogle() {
+  if (!_fbAuth) { alert('Auth not ready, please refresh.'); return; }
+  _setLoginLoading(true); _showLoginError('');
+  _fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+    .then(function() { closeLoginModal(); _setLoginLoading(false); })
+    .catch(function(e) { _showLoginError(e.message); _setLoginLoading(false); });
+}
+function fbSignInEmail() {
+  if (!_fbAuth) { alert('Auth not ready, please refresh.'); return; }
+  var email = document.getElementById('login-email').value.trim();
+  var pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) { _showLoginError('Please enter email and password.'); return; }
+  _setLoginLoading(true); _showLoginError('');
+  _fbAuth.signInWithEmailAndPassword(email, pass)
+    .then(function() { closeLoginModal(); _setLoginLoading(false); })
+    .catch(function(e) {
+      var msg = (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')
+        ? 'Invalid email or password.'
+        : e.code === 'auth/invalid-email' ? 'Invalid email address.' : e.message;
+      _showLoginError(msg); _setLoginLoading(false);
+    });
+}
+function fbSignUp() {
+  if (!_fbAuth) { alert('Auth not ready, please refresh.'); return; }
+  var email = document.getElementById('login-email').value.trim();
+  var pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) { _showLoginError('Please enter email and password.'); return; }
+  if (pass.length < 6) { _showLoginError('Password must be at least 6 characters.'); return; }
+  _setLoginLoading(true); _showLoginError('');
+  _fbAuth.createUserWithEmailAndPassword(email, pass)
+    .then(function() { closeLoginModal(); _setLoginLoading(false); })
+    .catch(function(e) {
+      var msg = e.code === 'auth/email-already-in-use' ? 'Account already exists. Try signing in.'
+              : e.code === 'auth/weak-password' ? 'Password is too weak.' : e.message;
+      _showLoginError(msg); _setLoginLoading(false);
+    });
+}
+function fbSignOut() {
+  var bar = document.getElementById('signout-confirm-bar');
+  if (bar) {
+    bar.remove();
+    if (_fbAuth) _fbAuth.signOut().then(function() {
+      window._currentUser = null;
+      document.getElementById('app').classList.remove('slide-in');
+      document.getElementById('landing').classList.remove('slide-out');
+    });
+    return;
+  }
+  bar = document.createElement('div');
+  bar.id = 'signout-confirm-bar';
+  bar.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text);box-shadow:0 4px 24px rgba(0,0,0,0.5);min-width:260px;max-width:90vw;';
+  bar.innerHTML = '<span style="flex:1">Sign out? Data saved to cloud.</span>'
+    + '<button class="btn btn-sm btn-danger" onclick="fbSignOut()">Sign Out</button>'
+    + '<button class="btn btn-sm btn-outline" onclick="this.parentNode.remove()">Cancel</button>';
+  document.body.appendChild(bar);
+  setTimeout(function() { var b = document.getElementById('signout-confirm-bar'); if (b) b.remove(); }, 6000);
+}
+
 // ── HELPERS ──
 function escHtml(str){
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1307,10 +1348,12 @@ function showLogin(){document.getElementById('login-modal').classList.add('open'
 // ── BOOT — wrapped in DOMContentLoaded so all DOM elements exist ──
 document.addEventListener('DOMContentLoaded',function(){
   load();loadTheme();
-  // Show login buttons immediately — Firebase auth will update them once it resolves
+  // Show login buttons immediately before auth resolves
   document.querySelectorAll('.login-trigger').forEach(function(b){b.style.display='flex';});
   document.querySelectorAll('.logout-trigger').forEach(function(b){b.style.display='none';});
   window._appReady=true;
+  // Init Firebase after DOM + CDN scripts are ready
+  _initFirebase();
   // Sync window globals for Firebase module
   window.trades=trades;window.weeklies=weeklies;
   window.reflections=reflections;window.rules=rules;window.userProfile=userProfile;
