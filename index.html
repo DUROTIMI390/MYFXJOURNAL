@@ -826,37 +826,70 @@ body.light .score-btn.selected{background:#fdf3cc}
 <!-- IMPORT TRADES -->
 <div id="page-import" class="page">
   <h2>Import Trades</h2>
-  <div class="notice">Import your trade history directly from your trading platform. We auto-detect the format and map all fields.</div>
+
+  <!-- ── SECTION 1: MetaApi Direct Sync ── -->
+  <div class="card" style="margin-bottom:1.25rem;border-color:var(--gold-dim)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem">
+      <div style="width:36px;height:36px;border-radius:8px;background:#1a1f2e;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">⚡</div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">Direct Sync — MT4 / MT5 / cTrader</div>
+        <div style="font-size:11px;color:var(--gold-muted)">Live connection via MetaApi · No CSV needed</div>
+      </div>
+      <span style="margin-left:auto;background:var(--gold-dim);color:#0a0a0a;font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px">LIVE</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.7;background:var(--bg);border-radius:8px;padding:0.75rem">
+      MetaApi connects directly to your broker account. <a href="https://metaapi.cloud" target="_blank" style="color:var(--gold)">Create a free MetaApi account</a>, add your MT4/MT5 or cTrader account, then paste your token and Account ID below.
+    </div>
+    <div class="form-grid" style="margin-bottom:0.875rem">
+      <div class="form-group">
+        <label>MetaApi Token</label>
+        <input type="password" id="metaapi-token" placeholder="Paste your MetaApi auth token…" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Account ID</label>
+        <input type="text" id="metaapi-account" placeholder="e.g. abc123def456…" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-grid" style="margin-bottom:0.875rem">
+      <div class="form-group">
+        <label>From Date</label>
+        <input type="date" id="metaapi-from">
+      </div>
+      <div class="form-group">
+        <label>To Date</label>
+        <input type="date" id="metaapi-to">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="metaapiSync()" id="metaapi-btn">⚡ Sync Trades Now</button>
+      <button class="btn btn-outline btn-sm" onclick="metaapiSaveToken()">💾 Save Token</button>
+    </div>
+    <div id="metaapi-status" style="margin-top:0.75rem;font-size:12px;display:none"></div>
+    <div id="metaapi-preview" style="margin-top:0.75rem;display:none"></div>
+  </div>
+
+  <!-- ── SECTION 2: CSV Import ── -->
+  <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem;font-weight:500">Or import via CSV file</div>
   <div class="import-section">
-    <div class="card-title">Choose Your Platform</div>
     <div class="import-platform" onclick="showImportModal('mt5')">
       <div class="import-platform-icon" style="background:#1a1f2e">📊</div>
-      <div class="import-platform-info"><strong>MetaTrader 4 / MT5</strong><span>Export history from MT4/MT5 → Reports → Save as CSV</span></div>
-      <button class="btn btn-sm btn-primary" style="margin-left:auto">Import</button>
+      <div class="import-platform-info"><strong>MetaTrader 4 / MT5</strong><span>Terminal → Account History → Right-click → Save as CSV</span></div>
+      <button class="btn btn-sm btn-outline" style="margin-left:auto">CSV Import</button>
     </div>
     <div class="import-platform" onclick="showImportModal('tradingview')">
       <div class="import-platform-icon" style="background:#1a2e1a">📈</div>
-      <div class="import-platform-info"><strong>TradingView</strong><span>Export from TradingView Paper Trading or broker connection</span></div>
-      <button class="btn btn-sm btn-primary" style="margin-left:auto">Import</button>
+      <div class="import-platform-info"><strong>TradingView</strong><span>Trade History → Export button → Download CSV</span></div>
+      <button class="btn btn-sm btn-outline" style="margin-left:auto">CSV Import</button>
     </div>
     <div class="import-platform" onclick="showImportModal('ctrader')">
       <div class="import-platform-icon" style="background:#2e1a1a">⚡</div>
-      <div class="import-platform-info"><strong>cTrader</strong><span>Export history from cTrader → History → Export to CSV</span></div>
-      <button class="btn btn-sm btn-primary" style="margin-left:auto">Import</button>
+      <div class="import-platform-info"><strong>cTrader</strong><span>History tab → Select date range → Export to CSV</span></div>
+      <button class="btn btn-sm btn-outline" style="margin-left:auto">CSV Import</button>
     </div>
     <div class="import-platform" onclick="showImportModal('generic')">
       <div class="import-platform-icon" style="background:#1a1500">📁</div>
-      <div class="import-platform-info"><strong>Generic CSV</strong><span>Any broker CSV with columns: Date, Pair, Direction, Lot, Entry, Exit, P&L</span></div>
-      <button class="btn btn-sm btn-outline" style="margin-left:auto">Import</button>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">How to Export from Each Platform</div>
-    <div style="font-size:13px;color:var(--muted);line-height:1.8">
-      <div style="margin-bottom:0.75rem"><strong style="color:var(--text)">MT4/MT5:</strong> Open Terminal → Account History tab → Right-click → Save as Report → Choose CSV format</div>
-      <div style="margin-bottom:0.75rem"><strong style="color:var(--text)">TradingView:</strong> Go to Trade History in your broker connection → Export button → Download CSV</div>
-      <div style="margin-bottom:0.75rem"><strong style="color:var(--text)">cTrader:</strong> History tab → Select date range → Export to CSV button at the bottom</div>
-      <div><strong style="color:var(--text)">Generic:</strong> Your CSV needs at minimum: Date, Symbol/Pair, Type (Buy/Sell), Volume/Lots, Open Price, Close Price, Profit/P&L</div>
+      <div class="import-platform-info"><strong>Generic CSV</strong><span>Any CSV with: Date, Pair, Direction, Lots, Entry, Exit, P&amp;L</span></div>
+      <button class="btn btn-sm btn-outline" style="margin-left:auto">CSV Import</button>
     </div>
   </div>
 </div>
@@ -1047,12 +1080,16 @@ function closeLoginModal() {
 function cloudSave() {
   if (!window._currentUser || !_fbDb) return;
   try {
-    var uid = window._currentUser.uid;
-    var db  = _fbDb;
-    var b   = db.batch();
-    var base = db.collection('users').doc(uid).collection('data');
+    var uid  = window._currentUser.uid;
+    var b    = _fbDb.batch();
+    var base = _fbDb.collection('users').doc(uid).collection('data');
+    // Build profile — always pull _startingBalance from window.userProfile
+    // which saveStartBal() keeps up to date
     var prof = Object.assign({}, window.userProfile || {});
-    prof._startingBalance = startingBalance;
+    // Belt-and-suspenders: also read from window.startingBalance directly
+    var sb = window.startingBalance;
+    if (sb === undefined || isNaN(sb)) sb = parseFloat(localStorage.getItem('startingBalance')) || 0;
+    prof._startingBalance = sb;
     b.set(base.doc('profile'),     prof);
     b.set(base.doc('trades'),      { list: window.trades      || [] });
     b.set(base.doc('weeklies'),    { list: window.weeklies    || [] });
@@ -1079,11 +1116,17 @@ function cloudLoad(uid, cb) {
     if (r[0].exists) {
       var p = r[0].data();
       Object.assign(window.userProfile, p);
-      Object.assign(userProfile, p);
-      if (p._startingBalance !== undefined) {
-        startingBalance = p._startingBalance;
-        window.startingBalance = startingBalance;
-        localStorage.setItem('startingBalance', String(startingBalance));
+      // userProfile may not exist yet as a var at this point in execution,
+      // so guard with typeof check and use window.userProfile as the source of truth
+      if (typeof userProfile !== 'undefined') Object.assign(userProfile, p);
+      if (p._startingBalance !== undefined && !isNaN(p._startingBalance)) {
+        var sb = parseFloat(p._startingBalance);
+        // Update every reference so nothing is stale
+        window.startingBalance = sb;
+        if (typeof startingBalance !== 'undefined') startingBalance = sb;
+        localStorage.setItem('startingBalance', String(sb));
+        window.userProfile._startingBalance = sb;
+        if (typeof userProfile !== 'undefined') userProfile._startingBalance = sb;
       }
     }
     if (r[1].exists && r[1].data().list) { trades      = r[1].data().list; window.trades      = trades;      }
@@ -1497,14 +1540,21 @@ function saveStartBal(){
   var val=parseFloat(document.getElementById('bal-edit-input').value);
   if(isNaN(val)||val<0)return;
   startingBalance=val;
-  localStorage.setItem('startingBalance',val);
+  window.startingBalance=val;
+  localStorage.setItem('startingBalance',String(val));
+  // Persist in userProfile so it travels with cloud sync
+  userProfile._startingBalance=val;
+  window.userProfile._startingBalance=val;
   document.getElementById('bal-edit-inline').classList.remove('show');
+  save(); // triggers cloudSaveFn → writes to Firestore immediately
   renderDashboard();
 }
 
 function updateBalanceTiles(t){
-  // Always read latest value — window.startingBalance is updated by cloudLoad
-  if(window.startingBalance!==undefined)startingBalance=window.startingBalance;
+  // Always read latest value from window — updated by saveStartBal and cloudLoad
+  if(window.startingBalance!==undefined && !isNaN(window.startingBalance)){
+    startingBalance=window.startingBalance;
+  }
   var totalPnl=t.reduce(function(s,x){return s+(parseFloat(x.pnl)||0)},0);
   var todayStr=new Date().toISOString().slice(0,10);
   var todayTrades=t.filter(function(x){return x.date===todayStr});
@@ -1698,22 +1748,129 @@ function closeModal(){document.getElementById('modal').classList.remove('open')}
 document.getElementById('modal').addEventListener('click',function(e){if(e.target===document.getElementById('modal'))closeModal()});
 
 // ── IMPORT TRADES ──
+function getDayOfWeek(dateStr){var d=new Date(dateStr);return['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]||'';}
+
+// ── MetaApi Direct Sync ──
+function metaapiSaveToken(){
+  var tok=(document.getElementById('metaapi-token').value||'').trim();
+  var acc=(document.getElementById('metaapi-account').value||'').trim();
+  if(tok)localStorage.setItem('metaapi_token',tok);
+  if(acc)localStorage.setItem('metaapi_account',acc);
+  _importStatus('💾 Token & Account ID saved.','var(--gold)');
+}
+function _importStatus(msg,color){
+  var el=document.getElementById('metaapi-status');
+  if(!el)return;
+  el.textContent=msg;el.style.color=color||'var(--text)';el.style.display='block';
+}
+function _importPreview(arr){
+  var el=document.getElementById('metaapi-preview');
+  if(!el)return;
+  if(!arr||!arr.length){el.style.display='none';return;}
+  el.style.display='block';
+  el.innerHTML='<div class="card"><div class="card-title">Preview — '+arr.length+' trades found</div>'+
+    arr.slice(0,5).map(function(t){
+      return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">'+
+        '<span style="font-weight:500;color:var(--text)">'+t.pair+'</span>'+
+        '<span style="color:var(--muted)">'+t.dir+'</span>'+
+        '<span style="color:var(--muted)">'+t.date+'</span>'+
+        '<span class="'+(t.pnl>=0?'pnl-pos':'pnl-neg')+'">'+(t.pnl>=0?'+':'')+'$'+t.pnl.toFixed(2)+'</span></div>';
+    }).join('')+
+    (arr.length>5?'<div style="font-size:11px;color:var(--muted);margin-top:6px">…and '+(arr.length-5)+' more</div>':'')+
+    '<div style="display:flex;gap:8px;margin-top:1rem">'+
+    '<button class="btn btn-primary btn-sm" onclick="metaapiConfirmImport()">✓ Import All</button>'+
+    '<button class="btn btn-outline btn-sm" onclick="_hideMetaapiPreview()">Cancel</button>'+
+    '</div></div>';
+}
+var _metaapiParsed=[];
+function metaapiSync(){
+  var token=(document.getElementById('metaapi-token').value||'').trim()||localStorage.getItem('metaapi_token')||'';
+  var accountId=(document.getElementById('metaapi-account').value||'').trim()||localStorage.getItem('metaapi_account')||'';
+  var fromDate=document.getElementById('metaapi-from').value;
+  var toDate=document.getElementById('metaapi-to').value;
+  if(!token||!accountId){_importStatus('⚠️ Please enter your MetaApi Token and Account ID.','var(--danger)');return;}
+  var btn=document.getElementById('metaapi-btn');
+  if(btn){btn.textContent='Syncing…';btn.disabled=true;}
+  _importStatus('🔄 Connecting to MetaApi…','var(--gold)');
+  document.getElementById('metaapi-preview').style.display='none';
+  var startTime=fromDate?new Date(fromDate).toISOString():new Date(Date.now()-30*24*60*60*1000).toISOString();
+  var endTime=toDate?new Date(toDate+'T23:59:59').toISOString():new Date().toISOString();
+  var url='https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/'+accountId+'/history-deals/time?startTime='+encodeURIComponent(startTime)+'&endTime='+encodeURIComponent(endTime)+'&limit=1000';
+  fetch(url,{method:'GET',headers:{'auth-token':token,'Content-Type':'application/json'}})
+  .then(function(r){
+    if(!r.ok){return r.json().then(function(e){throw new Error(e.message||('Error '+r.status));}).catch(function(){throw new Error('HTTP '+r.status+' — check token and Account ID');});}
+    return r.json();
+  })
+  .then(function(deals){
+    if(!Array.isArray(deals)||!deals.length){
+      _importStatus('No trades found in that date range.','var(--muted)');
+      if(btn){btn.textContent='⚡ Sync Trades Now';btn.disabled=false;}
+      return;
+    }
+    _metaapiParsed=deals
+      .filter(function(d){return d.entryType==='DEAL_ENTRY_OUT';})
+      .map(function(d,i){
+        var pnl=parseFloat(d.profit)||0;
+        var pair=(d.symbol||'').toUpperCase().replace('_','/');
+        var dateStr=d.time?d.time.slice(0,10):today();
+        return{id:Date.now()+i,date:dateStr,pair:pair,dir:d.type==='DEAL_TYPE_SELL'?'Sell':'Buy',
+          session:'',day:getDayOfWeek(dateStr),lot:String(d.volume||''),
+          entry:String(d.price||''),exit:String(d.price||''),sl:'',tp:'',
+          pnl:pnl,result:pnl>0?'Win':pnl<0?'Loss':'Break Even',
+          tags:[],emotion:'',notes:'MetaApi: '+(d.symbol||''),img:''};
+      });
+    _importStatus('✓ Found '+_metaapiParsed.length+' closed trades. Review and confirm below.','var(--success)');
+    _importPreview(_metaapiParsed);
+    if(btn){btn.textContent='⚡ Sync Trades Now';btn.disabled=false;}
+  })
+  .catch(function(err){
+    _importStatus('❌ '+err.message,'var(--danger)');
+    if(btn){btn.textContent='⚡ Sync Trades Now';btn.disabled=false;}
+  });
+}
+function _triggerCsvUpload(){var el=document.getElementById('csv-upload');if(el)el.click();}
+function _hideMetaapiPreview(){var el=document.getElementById('metaapi-preview');if(el)el.style.display='none';}
+function metaapiConfirmImport(){
+  if(!_metaapiParsed.length)return;
+  var existing=new Set(trades.map(function(t){return t.date+'|'+t.pair+'|'+t.pnl;}));
+  var newT=_metaapiParsed.filter(function(t){return !existing.has(t.date+'|'+t.pair+'|'+t.pnl);});
+  trades=[].concat(newT,trades);window.trades=trades;
+  save();_metaapiParsed=[];
+  document.getElementById('metaapi-preview').style.display='none';
+  _importStatus('✅ Imported '+newT.length+' new trades!','var(--success)');
+  setTimeout(function(){nav(null,'trades');},1200);
+}
+
+// ── CSV Import ──
 function showImportModal(platform){
-  var names={mt5:'MetaTrader 4/MT5',tradingview:'TradingView',ctrader:'cTrader',generic:'Generic CSV'};
-  document.getElementById('import-modal-title').textContent='Import from '+names[platform];
-  document.getElementById('import-modal-body').innerHTML=
-    '<div class="notice" style="margin-bottom:1rem">'+getImportInstructions(platform)+'</div>'+
-    '<div class="form-group" style="margin-bottom:1.25rem"><label>Select your CSV file</label>'+
-    '<div class="screenshot-drop" onclick="document.getElementById(\'csv-upload\').click()">📂 Click to select CSV file<input type="file" id="csv-upload" accept=".csv,.txt" style="display:none;width:auto" onchange="previewCSV(this,\''+platform+'\')"></div></div>'+
-    '<div id="csv-preview" style="display:none">'+
-    '<div class="card" style="margin-bottom:1rem"><div class="card-title">Preview</div><div id="csv-preview-body" style="font-size:12px;color:var(--muted)"></div></div>'+
-    '<div style="display:flex;gap:10px"><button class="btn btn-primary" onclick="confirmImport(\''+platform+'\')">Import Trades</button><button class="btn btn-outline" onclick="closeImportModal()">Cancel</button></div></div>';
+  var names={mt5:'MetaTrader 4 / MT5',tradingview:'TradingView',ctrader:'cTrader',generic:'Generic CSV'};
+  var instructions={
+    mt5:'Terminal → Account History → Right-click → Save as Report → CSV format',
+    tradingview:'Trade History → Export button → Download CSV',
+    ctrader:'History tab → Select date range → Export to CSV',
+    generic:'Any CSV with: Date, Pair, Direction, Lots, Entry, Exit, P&L'
+  };
+  window._csvPlatform=platform;
+  var body=document.getElementById('import-modal-body');
+  document.getElementById('import-modal-title').textContent='CSV Import — '+(names[platform]||platform);
+  body.innerHTML='';
+  var notice=document.createElement('div');notice.className='notice';notice.style.marginBottom='1rem';notice.textContent=instructions[platform]||'';body.appendChild(notice);
+  var fg=document.createElement('div');fg.className='form-group';fg.style.marginBottom='1.25rem';
+  fg.innerHTML='<label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Select your CSV file</label>';
+  var drop=document.createElement('div');drop.className='screenshot-drop';drop.textContent='📂 Tap to select CSV file';
+  var inp=document.createElement('input');inp.type='file';inp.id='csv-upload';inp.accept='.csv,.txt';inp.style.cssText='display:none;width:auto';
+  inp.onchange=function(){previewCSV(this,window._csvPlatform);};
+  drop.onclick=function(){inp.click();};
+  drop.appendChild(inp);fg.appendChild(drop);body.appendChild(fg);
+  var prev=document.createElement('div');prev.id='csv-preview';prev.style.display='none';
+  prev.innerHTML='<div class="card" style="margin-bottom:1rem"><div class="card-title">Preview</div><div id="csv-preview-body" style="font-size:12px;color:var(--muted)"></div></div>';
+  var btnRow=document.createElement('div');btnRow.style.cssText='display:flex;gap:10px;margin-top:4px';
+  var bi=document.createElement('button');bi.className='btn btn-primary';bi.textContent='Import Trades';bi.onclick=function(){confirmImport(window._csvPlatform);};
+  var bc=document.createElement('button');bc.className='btn btn-outline';bc.textContent='Cancel';bc.onclick=closeImportModal;
+  btnRow.appendChild(bi);btnRow.appendChild(bc);prev.appendChild(btnRow);body.appendChild(prev);
   document.getElementById('import-modal').classList.add('open');
 }
-function getImportInstructions(p){
-  var m={mt5:'MT4/MT5: Terminal → Account History → Right-click → Save as Report → CSV format',tradingview:'TradingView: Trade History → Export button → Download CSV',ctrader:'cTrader: History tab → Select date range → Export to CSV',generic:'Any CSV with columns: Date, Pair, Direction, Lots, Entry, Exit, P&L'};
-  return m[p]||'Select your CSV file to import.';
-}
+
 var parsedImportTrades=[];
 function previewCSV(inp,platform){
   var f=inp.files[0];if(!f)return;
@@ -1723,26 +1880,35 @@ function previewCSV(inp,platform){
     parsedImportTrades=parseCSV(text,platform);
     var pv=document.getElementById('csv-preview');
     var pb=document.getElementById('csv-preview-body');
-    if(!parsedImportTrades.length){pb.innerHTML='<span style="color:var(--danger)">Could not parse this CSV. Please check the format.</span>';pv.style.display='block';return}
-    pb.innerHTML='Found <strong style="color:var(--gold)">'+parsedImportTrades.length+' trades</strong> ready to import.<br><br>'+parsedImportTrades.slice(0,3).map(function(t){return '<div style="padding:4px 0;border-bottom:1px solid var(--border)">'+t.date+' · '+t.pair+' · '+t.dir+' · $'+(t.pnl?t.pnl.toFixed(2):'0.00')+'</div>'}).join('');
+    if(!parsedImportTrades.length){
+      pb.innerHTML='<span style="color:var(--danger)">Could not parse this CSV. Please check the format.</span>';
+      pv.style.display='block';return;
+    }
+    pb.innerHTML='Found <strong style="color:var(--gold)">'+parsedImportTrades.length+' trades</strong> ready to import.<br><br>'+
+      parsedImportTrades.slice(0,4).map(function(t){
+        return '<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;display:flex;justify-content:space-between">'+
+          '<span style="font-weight:500">'+t.pair+'</span><span>'+t.dir+'</span><span>'+t.date+'</span>'+
+          '<span class="'+(t.pnl>=0?'pnl-pos':'pnl-neg')+'">'+(t.pnl>=0?'+':'')+'$'+t.pnl.toFixed(2)+'</span></div>';
+      }).join('');
     pv.style.display='block';
-  };reader.readAsText(f);
+  };
+  reader.readAsText(f);
 }
 function parseCSV(text,platform){
-  var lines=text.trim().split('\n').filter(function(l){return l.trim()});
+  var lines=text.trim().split('\n').filter(function(l){return l.trim();});
   if(lines.length<2)return[];
   var results=[];
-  var header=lines[0].toLowerCase().split(',').map(function(h){return h.trim().replace(/"/g,'')});
-  function findCol(names){return names.map(function(n){return header.findIndex(function(h){return h.includes(n)})}).find(function(i){return i>=0})}
+  var header=lines[0].toLowerCase().split(',').map(function(h){return h.trim().replace(/"/g,'');});
+  function findCol(names){return names.map(function(n){return header.findIndex(function(h){return h.includes(n);});}).find(function(i){return i>=0;});}
   var dateCol=findCol(['time','date','open time']);
-  var symbolCol=findCol(['symbol','pair','instrument']);
-  var typeCol=findCol(['type','direction','side']);
-  var lotsCol=findCol(['volume','lots','size','qty']);
-  var openCol=findCol(['open price','entry','open']);
-  var closeCol=findCol(['close price','exit','close']);
-  var profitCol=findCol(['profit','p&l','pnl','pl','gain']);
+  var symbolCol=findCol(['symbol','pair','instrument','currency']);
+  var typeCol=findCol(['type','direction','side','action']);
+  var lotsCol=findCol(['volume','lots','size','qty','quantity']);
+  var openCol=findCol(['open price','entry price','entry','open']);
+  var closeCol=findCol(['close price','exit price','exit','close']);
+  var profitCol=findCol(['profit','p&l','pnl','pl ','gain']);
   for(var i=1;i<lines.length;i++){
-    var cols=lines[i].split(',').map(function(c){return c.trim().replace(/"/g,'')});
+    var cols=lines[i].split(',').map(function(c){return c.trim().replace(/"/g,'');});
     if(cols.length<3)continue;
     var pnl=parseFloat(cols[profitCol])||0;
     var dir=(cols[typeCol]||'').toLowerCase().includes('buy')?'Buy':'Sell';
@@ -1750,22 +1916,24 @@ function parseCSV(text,platform){
     var dateRaw=cols[dateCol]||'';
     var date=dateRaw.slice(0,10)||today();
     if(!pair)continue;
-    results.push({id:Date.now()+i,date:date,pair:pair,dir:dir,session:'',day:getDayOfWeek(date),lot:cols[lotsCol]||'',entry:cols[openCol]||'',exit:cols[closeCol]||'',sl:'',tp:'',pnl:pnl,result:pnl>0?'Win':pnl<0?'Loss':'Break Even',tags:[],emotion:'',notes:'Import: '+platform,img:''});
+    results.push({id:Date.now()+i,date:date,pair:pair,dir:dir,session:'',day:getDayOfWeek(date),
+      lot:cols[lotsCol]||'',entry:cols[openCol]||'',exit:cols[closeCol]||'',
+      sl:'',tp:'',pnl:pnl,result:pnl>0?'Win':pnl<0?'Loss':'Break Even',
+      tags:[],emotion:'',notes:'CSV: '+platform,img:''});
   }
   return results;
 }
-function getDayOfWeek(dateStr){var d=new Date(dateStr);return['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]||''}
 function confirmImport(platform){
   if(!parsedImportTrades.length)return;
-  var existing=new Set(trades.map(function(t){return t.date+'|'+t.pair+'|'+t.pnl}));
-  var newTrades=parsedImportTrades.filter(function(t){return !existing.has(t.date+'|'+t.pair+'|'+t.pnl)});
-  trades=[].concat(newTrades,trades);
+  var existing=new Set(trades.map(function(t){return t.date+'|'+t.pair+'|'+t.pnl;}));
+  var newTrades=parsedImportTrades.filter(function(t){return !existing.has(t.date+'|'+t.pair+'|'+t.pnl);});
+  trades=[].concat(newTrades,trades);window.trades=trades;
   save();closeImportModal();
-  alert('✓ Imported '+newTrades.length+' new trades ('+(parsedImportTrades.length-newTrades.length)+' duplicates skipped).');
-  mobNav('trades','Trade History');
+  _importStatus('✅ Imported '+newTrades.length+' new trades ('+(parsedImportTrades.length-newTrades.length)+' duplicates skipped).','var(--success)');
+  setTimeout(function(){nav(null,'trades');},1000);
 }
-function closeImportModal(){document.getElementById('import-modal').classList.remove('open');parsedImportTrades=[]}
-document.getElementById('import-modal').addEventListener('click',function(e){if(e.target===document.getElementById('import-modal'))closeImportModal()});
+function closeImportModal(){document.getElementById('import-modal').classList.remove('open');parsedImportTrades=[];}
+document.getElementById('import-modal').addEventListener('click',function(e){if(e.target===document.getElementById('import-modal'))closeImportModal();});
 
 // ── WEEKLY / REFLECT ──
 function saveWeekly(){
@@ -2247,6 +2415,9 @@ window.showImportModal=showImportModal;
 window.previewCSV=previewCSV;
 window.confirmImport=confirmImport;
 window.closeImportModal=closeImportModal;
+window.metaapiSync=metaapiSync;
+window.metaapiSaveToken=metaapiSaveToken;
+window.metaapiConfirmImport=metaapiConfirmImport;
 window.saveWeekly=saveWeekly;
 window.renderWeeklyHistory=renderWeeklyHistory;
 window.toggleWeeklyDetail=toggleWeeklyDetail;
