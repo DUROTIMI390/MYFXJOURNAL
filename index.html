@@ -1113,15 +1113,14 @@ function cloudLoad(uid, cb) {
     base.doc('reflections').get(),
     base.doc('rules').get()
   ]).then(function(r) {
+    // Signal to save() that window.* now contains authoritative Firestore data
+    window._cloudLoaded = true;
     if (r[0].exists) {
       var p = r[0].data();
       Object.assign(window.userProfile, p);
-      // userProfile may not exist yet as a var at this point in execution,
-      // so guard with typeof check and use window.userProfile as the source of truth
       if (typeof userProfile !== 'undefined') Object.assign(userProfile, p);
       if (p._startingBalance !== undefined && !isNaN(p._startingBalance)) {
         var sb = parseFloat(p._startingBalance);
-        // Update every reference so nothing is stale
         window.startingBalance = sb;
         if (typeof startingBalance !== 'undefined') startingBalance = sb;
         localStorage.setItem('startingBalance', String(sb));
@@ -1129,10 +1128,11 @@ function cloudLoad(uid, cb) {
         if (typeof userProfile !== 'undefined') userProfile._startingBalance = sb;
       }
     }
-    if (r[1].exists && r[1].data().list) { trades      = r[1].data().list; window.trades      = trades;      }
-    if (r[2].exists && r[2].data().list) { weeklies    = r[2].data().list; window.weeklies    = weeklies;    }
-    if (r[3].exists && r[3].data().list) { reflections = r[3].data().list; window.reflections = reflections; }
-    if (r[4].exists && r[4].data().list) { rules       = r[4].data().list; window.rules       = rules;       }
+    // Only overwrite local arrays if Firestore actually has data for them
+    if (r[1].exists && r[1].data().list && r[1].data().list.length > 0) { trades      = r[1].data().list; window.trades      = trades; }
+    if (r[2].exists && r[2].data().list && r[2].data().list.length > 0) { weeklies    = r[2].data().list; window.weeklies    = weeklies; }
+    if (r[3].exists && r[3].data().list && r[3].data().list.length > 0) { reflections = r[3].data().list; window.reflections = reflections; }
+    if (r[4].exists && r[4].data().list && r[4].data().list.length > 0) { rules       = r[4].data().list; window.rules       = rules; }
     if (cb) cb();
   }).catch(function(e) { console.warn('cloudLoad error:', e); if (cb) cb(); });
 }
@@ -1313,20 +1313,31 @@ document.addEventListener('click',function(e){
 
 // ── STORAGE ──
 function save(){
-  // Sync from window globals in case Firebase cloudLoad updated them
-  if(window.trades!==trades)trades=window.trades;
-  if(window.weeklies!==weeklies)weeklies=window.weeklies;
-  if(window.reflections!==reflections)reflections=window.reflections;
-  if(window.rules!==rules)rules=window.rules;
-  if(window.userProfile!==userProfile)Object.assign(userProfile,window.userProfile);
-  // Keep window globals in sync
+  // NEVER read from window.* to update locals here.
+  // window.* is only written TO by save(), and read FROM only by cloudLoad().
+  // This prevents any stale or empty window state from wiping real trade data.
+  //
+  // The only exception: cloudLoad() sets window._cloudLoaded=true before calling save(),
+  // which signals that window.* contains fresh Firestore data worth merging.
+  if(window._cloudLoaded){
+    window._cloudLoaded=false;
+    if(Array.isArray(window.trades))trades=window.trades;
+    if(Array.isArray(window.weeklies))weeklies=window.weeklies;
+    if(Array.isArray(window.reflections))reflections=window.reflections;
+    if(Array.isArray(window.rules))rules=window.rules;
+    if(window.userProfile&&typeof window.userProfile==='object')Object.assign(userProfile,window.userProfile);
+    if(window.startingBalance!==undefined&&!isNaN(window.startingBalance))startingBalance=window.startingBalance;
+  }
+  // Push local state TO window (always safe — locals are always authoritative)
   window.trades=trades;
   window.weeklies=weeklies;
   window.reflections=reflections;
   window.rules=rules;
   window.userProfile=userProfile;
-  // Persist startingBalance inside userProfile so it survives logout/login
+  window.startingBalance=startingBalance;
+  // Embed startingBalance in userProfile for cloud sync
   userProfile._startingBalance=startingBalance;
+  window.userProfile._startingBalance=startingBalance;
   try{
     localStorage.setItem('fxj_trades',JSON.stringify(trades));
     localStorage.setItem('fxj_weeklies',JSON.stringify(weeklies));
@@ -1400,6 +1411,7 @@ document.addEventListener('DOMContentLoaded',function(){
   // Sync window globals for Firebase module
   window.trades=trades;window.weeklies=weeklies;
   window.reflections=reflections;window.rules=rules;window.userProfile=userProfile;
+  window.startingBalance=startingBalance;
   var fd=document.getElementById('f-date');if(fd)fd.value=today();
   var wd=document.getElementById('w-date');if(wd)wd.value=today();
   var rd=document.getElementById('r-date');if(rd)rd.value=today();
@@ -1515,7 +1527,14 @@ function saveTrade(){
     tags:[].concat(selTags),emotion:selEmotion,
     notes:document.getElementById('f-notes').value,img:imgData
   });
-  save();clearForm();mobNav('trades','Trade History');
+  save();clearForm();
+  // Navigate to history - use mobNav on mobile, nav on desktop
+  var mainEl=document.querySelector('.main');
+  if(mainEl&&mainEl.scrollTo)mainEl.scrollTo(0,0);
+  document.querySelectorAll('.page').forEach(function(x){x.classList.remove('active');});
+  var pg=document.getElementById('page-trades');
+  if(pg)pg.classList.add('active');
+  renderHistory();
 }
 function clearForm(){
   ['f-dir','f-session','f-day'].forEach(function(id){document.getElementById(id).value=''});
@@ -1544,6 +1563,7 @@ function saveStartBal(){
   localStorage.setItem('startingBalance',String(val));
   // Persist in userProfile so it travels with cloud sync
   userProfile._startingBalance=val;
+  if(!window.userProfile)window.userProfile=userProfile;
   window.userProfile._startingBalance=val;
   document.getElementById('bal-edit-inline').classList.remove('show');
   save(); // triggers cloudSaveFn → writes to Firestore immediately
@@ -1836,9 +1856,13 @@ function metaapiConfirmImport(){
   var newT=_metaapiParsed.filter(function(t){return !existing.has(t.date+'|'+t.pair+'|'+t.pnl);});
   trades=[].concat(newT,trades);window.trades=trades;
   save();_metaapiParsed=[];
-  document.getElementById('metaapi-preview').style.display='none';
+  var mprev=document.getElementById('metaapi-preview');if(mprev)mprev.style.display='none';
   _importStatus('✅ Imported '+newT.length+' new trades!','var(--success)');
-  setTimeout(function(){nav(null,'trades');},1200);
+  setTimeout(function(){
+    document.querySelectorAll('.page').forEach(function(x){x.classList.remove('active');});
+    var pg=document.getElementById('page-trades');if(pg)pg.classList.add('active');
+    renderHistory();
+  },1200);
 }
 
 // ── CSV Import ──
@@ -1930,7 +1954,11 @@ function confirmImport(platform){
   trades=[].concat(newTrades,trades);window.trades=trades;
   save();closeImportModal();
   _importStatus('✅ Imported '+newTrades.length+' new trades ('+(parsedImportTrades.length-newTrades.length)+' duplicates skipped).','var(--success)');
-  setTimeout(function(){nav(null,'trades');},1000);
+  setTimeout(function(){
+    document.querySelectorAll('.page').forEach(function(x){x.classList.remove('active');});
+    var pg=document.getElementById('page-trades');if(pg)pg.classList.add('active');
+    renderHistory();
+  },1000);
 }
 function closeImportModal(){document.getElementById('import-modal').classList.remove('open');parsedImportTrades=[];}
 document.getElementById('import-modal').addEventListener('click',function(e){if(e.target===document.getElementById('import-modal'))closeImportModal();});
@@ -2331,12 +2359,25 @@ function importJSON(){
   var r=new FileReader();r.onload=function(e){
     try{
       var d=JSON.parse(e.target.result);
-      if(d.trades)trades=d.trades;if(d.weeklies)weeklies=d.weeklies;
-      if(d.reflections)reflections=d.reflections;if(d.rules)rules=d.rules;
-      if(d.userProfile)userProfile=d.userProfile;save();
-      var m=document.getElementById('import-msg');m.style.display='block';m.style.color='var(--gold)';m.textContent='✓ Imported '+trades.length+' trades successfully.';
+      if(d.trades)trades=d.trades;
+      if(d.weeklies)weeklies=d.weeklies;
+      if(d.reflections)reflections=d.reflections;
+      if(d.rules)rules=d.rules;
+      if(d.userProfile){
+        Object.assign(userProfile,d.userProfile);
+        // Restore startingBalance from backup if present
+        if(d.userProfile._startingBalance!==undefined&&!isNaN(d.userProfile._startingBalance)){
+          startingBalance=parseFloat(d.userProfile._startingBalance);
+          window.startingBalance=startingBalance;
+          localStorage.setItem('startingBalance',String(startingBalance));
+        }
+      }
+      save();
+      var m=document.getElementById('import-msg');
+      if(m){m.style.display='block';m.style.color='var(--gold)';m.textContent='✓ Imported '+trades.length+' trades successfully.';}
     }catch(err){
-      var m=document.getElementById('import-msg');m.style.display='block';m.style.color='var(--danger)';m.textContent='Error: Invalid backup file.';
+      var m=document.getElementById('import-msg');
+      if(m){m.style.display='block';m.style.color='var(--danger)';m.textContent='Error: Invalid backup file.';}
     }
   };r.readAsText(f);
 }
