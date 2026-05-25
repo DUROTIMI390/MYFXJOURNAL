@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>My FX Journal — Track Every Trade. Master Every Move.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- Firebase -->
 <!-- Firebase SDKs -->
@@ -199,6 +201,325 @@ input,select,textarea{background:var(--bg);border:1px solid var(--border);color:
 input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 textarea{resize:vertical;min-height:75px}
 select option{background:var(--bg)}
+
+/* ══ UI UPGRADE ══ */
+/* Typography */
+html,body{font-family:'DM Sans',system-ui,sans-serif;}
+code,pre,.metric-value,.btile-val,.price-amount,.stat-card-val{font-family:'DM Mono','Segoe UI',monospace;}
+
+/* Enhanced CSS variables */
+:root{
+  --gold:#f5c842;--gold-dim:#c9a227;--gold-muted:#a08c3a;
+  --bg:#08090d;--bg2:#0f1117;--bg3:#13150e;
+  --border:#1e2030;--text:#e8ecf4;--muted:#6b7280;
+  --danger:#f87171;--success:#34d399;
+  --card-bg:linear-gradient(135deg,#0f1117 0%,#0d0f18 100%);
+  --glow:0 0 20px rgba(245,200,66,0.08);
+  --glow-strong:0 0 30px rgba(245,200,66,0.15);
+}
+body.light{
+  --bg:#f0f2f8;--bg2:#ffffff;--bg3:#f8f9ff;
+  --border:#e2e6f0;--text:#0f1117;--muted:#6b7280;
+  --card-bg:linear-gradient(135deg,#ffffff 0%,#f8f9ff 100%);
+  --glow:0 2px 12px rgba(0,0,0,0.06);
+  --glow-strong:0 4px 20px rgba(0,0,0,0.1);
+}
+
+/* Cards get depth */
+.card{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:var(--glow);
+  transition:box-shadow 0.2s,border-color 0.2s;
+}
+.card:hover{border-color:rgba(245,200,66,0.2);box-shadow:var(--glow-strong);}
+.metric-card,.stat-card,.btile{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow:var(--glow);
+  transition:all 0.2s;
+}
+.metric-card:hover,.stat-card:hover,.btile:hover{
+  border-color:rgba(245,200,66,0.25);
+  box-shadow:var(--glow-strong);
+  transform:translateY(-1px);
+}
+
+/* Sidebar upgrade */
+.sidebar{
+  background:linear-gradient(180deg,#0b0d14 0%,#080a10 100%);
+  border-right:1px solid var(--border);
+}
+.nav-item.active{
+  background:linear-gradient(135deg,rgba(245,200,66,0.12),rgba(245,200,66,0.06));
+  color:var(--gold);
+  border-left:2px solid var(--gold);
+  border-radius:0 8px 8px 0;
+}
+.nav-item:hover{
+  background:rgba(245,200,66,0.06);
+  color:var(--text);
+}
+.s-greeting{
+  background:linear-gradient(135deg,rgba(245,200,66,0.08),transparent);
+  border:1px solid rgba(245,200,66,0.12);
+  border-radius:10px;
+  margin:0 0 0.5rem;
+  padding:0.75rem;
+}
+
+/* Button upgrade */
+.btn-primary{
+  background:linear-gradient(135deg,#c9a227,#f5c842);
+  color:#080a10;
+  font-weight:700;
+  border-radius:10px;
+  box-shadow:0 2px 12px rgba(245,200,66,0.25);
+  transition:all 0.15s;
+  border:none;
+}
+.btn-primary:hover{
+  background:linear-gradient(135deg,#f5c842,#ffe066);
+  box-shadow:0 4px 20px rgba(245,200,66,0.4);
+  transform:translateY(-1px);
+}
+.btn-outline{
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--muted);
+  border-radius:10px;
+  transition:all 0.15s;
+}
+.btn-outline:hover{
+  border-color:rgba(245,200,66,0.4);
+  color:var(--text);
+  background:rgba(245,200,66,0.05);
+}
+.btn-green{
+  background:rgba(52,211,153,0.1);
+  color:var(--success);
+  border:1px solid rgba(52,211,153,0.25);
+  border-radius:10px;
+}
+.btn-green:hover{background:rgba(52,211,153,0.18);border-color:rgba(52,211,153,0.4);}
+.btn-blue{
+  background:rgba(96,165,250,0.1);
+  color:#60a5fa;
+  border:1px solid rgba(96,165,250,0.25);
+  border-radius:10px;
+}
+.btn-blue:hover{background:rgba(96,165,250,0.18);}
+.btn-danger{
+  background:rgba(248,113,113,0.1);
+  color:var(--danger);
+  border:1px solid rgba(248,113,113,0.25);
+  border-radius:10px;
+}
+.btn-danger:hover{background:rgba(248,113,113,0.18);}
+
+/* Input upgrade */
+input,select,textarea{
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:10px;
+  transition:all 0.15s;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:rgba(245,200,66,0.5);
+  background:rgba(245,200,66,0.03);
+  box-shadow:0 0 0 3px rgba(245,200,66,0.08);
+}
+
+/* Badge upgrade */
+.badge-win{background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.2);}
+.badge-loss{background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.2);}
+.badge-buy{background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.2);}
+.badge-sell{background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.2);}
+.badge-be{background:rgba(148,163,184,0.1);color:#94a3b8;border:1px solid rgba(148,163,184,0.15);}
+
+/* Table upgrade */
+tr:hover td{background:rgba(245,200,66,0.03);}
+th{color:var(--muted);letter-spacing:0.06em;font-size:10px;}
+
+/* Mobile header upgrade */
+.mob-header{
+  background:linear-gradient(180deg,#0b0d14,#080a10);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 12px rgba(0,0,0,0.3);
+}
+.mob-header-title{font-weight:700;letter-spacing:-0.01em;}
+
+/* Mobile nav upgrade */
+.mobile-nav{
+  background:linear-gradient(180deg,#0b0d14,#080a10);
+  border-top:1px solid var(--border);
+  box-shadow:0 -4px 20px rgba(0,0,0,0.3);
+}
+.mob-nav-item.active{color:var(--gold);}
+.mob-nav-item.active .mob-nav-icon{
+  filter:drop-shadow(0 0 6px rgba(245,200,66,0.5));
+}
+
+/* More menu upgrade */
+.mob-more-menu{
+  background:linear-gradient(180deg,#0b0d14,#080a10);
+  border-top:1px solid var(--border);
+  box-shadow:0 -4px 24px rgba(0,0,0,0.4);
+}
+.mob-more-item{
+  border-radius:12px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--border);
+  transition:all 0.15s;
+  font-weight:500;
+}
+.mob-more-item:hover,.mob-more-item.active{
+  background:rgba(245,200,66,0.08);
+  border-color:rgba(245,200,66,0.25);
+  color:var(--gold);
+}
+
+/* Metric values pop */
+.metric-value{font-size:22px;font-weight:800;letter-spacing:-0.02em;}
+.metric-value.green{color:var(--gold);}
+.btile-val{font-size:20px;font-weight:700;letter-spacing:-0.02em;}
+.btile-val.gold{
+  color:var(--gold);
+  text-shadow:0 0 20px rgba(245,200,66,0.3);
+}
+
+/* Dashboard welcome bar */
+#dash-welcome{
+  background:linear-gradient(135deg,rgba(245,200,66,0.08),rgba(245,200,66,0.02));
+  border:1px solid rgba(245,200,66,0.15);
+  border-radius:14px;
+  box-shadow:inset 0 1px 0 rgba(245,200,66,0.1);
+}
+
+/* Checklist items */
+.checkbox.checked{
+  background:linear-gradient(135deg,#c9a227,#f5c842);
+  border-color:transparent;
+  box-shadow:0 2px 8px rgba(245,200,66,0.3);
+}
+.progress-bar{
+  background:linear-gradient(90deg,#c9a227,#f5c842);
+  box-shadow:0 0 8px rgba(245,200,66,0.4);
+}
+
+/* Emotion / tag selected */
+.emotion-btn.selected,.tag.selected,.score-btn.selected{
+  background:rgba(245,200,66,0.1);
+  border-color:rgba(245,200,66,0.4);
+  color:var(--gold);
+  box-shadow:0 0 10px rgba(245,200,66,0.1);
+}
+.ob-option.selected{
+  background:rgba(245,200,66,0.1);
+  border-color:rgba(245,200,66,0.4);
+  color:var(--gold);
+}
+
+/* Warning / notice */
+.warning-banner{
+  background:linear-gradient(135deg,rgba(201,162,39,0.1),rgba(201,162,39,0.05));
+  border:1px solid rgba(245,200,66,0.25);
+  border-radius:12px;
+}
+.notice{
+  background:rgba(255,255,255,0.02);
+  border:1px solid var(--border);
+  border-radius:10px;
+  font-size:12px;
+}
+
+/* Reflect / weekly cards */
+.reflect-card{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:var(--glow);
+  transition:border-color 0.2s;
+}
+.reflect-card:hover{border-color:rgba(245,200,66,0.2);}
+
+/* History items */
+.history-item{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  transition:all 0.15s;
+}
+.history-item:hover{
+  border-color:rgba(245,200,66,0.3);
+  box-shadow:var(--glow-strong);
+  transform:translateY(-1px);
+}
+
+/* Star rating */
+.star.active{
+  color:var(--gold);
+  text-shadow:0 0 8px rgba(245,200,66,0.5);
+}
+
+/* Chart cards */
+.card-title{
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:1rem;
+}
+
+/* Ob-card */
+.ob-card{
+  background:linear-gradient(160deg,#0f1117,#0b0d14);
+  border:1px solid var(--border);
+  box-shadow:0 8px 40px rgba(0,0,0,0.4),var(--glow);
+}
+
+/* Modal */
+.modal{
+  background:linear-gradient(160deg,#0f1117,#0b0d14);
+  border:1px solid rgba(245,200,66,0.15);
+  box-shadow:0 20px 60px rgba(0,0,0,0.6),var(--glow);
+}
+
+/* Import platform rows */
+.import-platform{
+  background:rgba(255,255,255,0.02);
+  border:1px solid var(--border);
+  border-radius:12px;
+  transition:all 0.15s;
+}
+.import-platform:hover{
+  background:rgba(245,200,66,0.04);
+  border-color:rgba(245,200,66,0.25);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(245,200,66,0.2);border-radius:99px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(245,200,66,0.4);}
+
+/* Page load fade-in */
+.page.active{animation:pageFadeIn 0.2s ease;}
+@keyframes pageFadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* Light mode overrides */
+body.light .sidebar{background:linear-gradient(180deg,#f8f9ff,#f0f2f8);}
+body.light .mob-header{background:linear-gradient(180deg,#ffffff,#f8f9ff);}
+body.light .mobile-nav{background:linear-gradient(180deg,#ffffff,#f8f9ff);}
+body.light .mob-more-menu{background:linear-gradient(180deg,#ffffff,#f8f9ff);}
+body.light .card,.body.light .metric-card,.body.light .btile{background:#ffffff;}
+body.light input,body.light select,body.light textarea{background:#f8f9ff;}
+body.light .ob-card{background:#ffffff;}
+body.light .modal{background:#ffffff;}
 .btn{padding:0.65rem 1.2rem;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;touch-action:manipulation}
 .btn-primary{background:var(--gold-dim);color:#0a0a0a;font-weight:700}.btn-primary:hover{background:var(--gold)}
 .btn-sm{padding:0.4rem 0.85rem;font-size:12px;border-radius:7px}
@@ -431,7 +752,7 @@ body.light .score-btn.selected{background:#fdf3cc}
     <div class="ob-title">What's your name?</div>
     <div class="ob-sub">Your name or trading alias — this is how the app addresses you.</div>
     <div class="ob-form-group"><div class="ob-label">Name or Alias</div><input type="text" id="ob-name" placeholder="e.g. Surge, PipHunter, John…" style="font-size:16px;padding:0.875rem 1rem"></div>
-    <div class="ob-btn-row"><button class="btn btn-primary" style="flex:1" onclick="obNext(1)">Continue →</button></div>
+    <div class="ob-btn-row"><button class="btn btn-primary" style="flex:1" onclick="obNext(1)">Continue</button></div>
   </div>
   <div class="ob-step" id="ob-step-2">
     <div class="ob-title">Experience level?</div>
@@ -441,7 +762,7 @@ body.light .score-btn.selected{background:#fdf3cc}
       <div class="ob-option" onclick="selectOb(this,'exp','Advanced')">🔥 Advanced<br><small style="font-size:10px;color:var(--muted)">3–5 years</small></div>
       <div class="ob-option" onclick="selectOb(this,'exp','Professional')">💎 Professional<br><small style="font-size:10px;color:var(--muted)">5+ years</small></div>
     </div>
-    <div class="ob-btn-row"><button class="btn btn-outline" onclick="obBack(2)">← Back</button><button class="btn btn-primary" style="flex:1" onclick="obNext(2)">Continue →</button></div>
+    <div class="ob-btn-row"><button class="btn btn-outline" onclick="obBack(2)">Back</button><button class="btn btn-primary" style="flex:1" onclick="obNext(2)">Continue</button></div>
   </div>
   <div class="ob-step" id="ob-step-3">
     <div class="ob-title">Account size?</div>
@@ -452,7 +773,7 @@ body.light .score-btn.selected{background:#fdf3cc}
       <div class="ob-option" onclick="selectOb(this,'acct','$5,000–$20,000')">$5,000–$20,000</div>
       <div class="ob-option" onclick="selectOb(this,'acct','$20,000+')">$20,000+</div>
     </div>
-    <div class="ob-btn-row"><button class="btn btn-outline" onclick="obBack(3)">← Back</button><button class="btn btn-primary" style="flex:1" onclick="obNext(3)">Continue →</button></div>
+    <div class="ob-btn-row"><button class="btn btn-outline" onclick="obBack(3)">Back</button><button class="btn btn-primary" style="flex:1" onclick="obNext(3)">Continue</button></div>
   </div>
   <div class="ob-step" id="ob-step-4">
     <div class="ob-title">Trading style?</div>
@@ -465,7 +786,7 @@ body.light .score-btn.selected{background:#fdf3cc}
       <div class="ob-option" onclick="this.classList.toggle('selected');toggleStyle('ICT / SMC')">🧠 ICT / SMC</div>
       <div class="ob-option" onclick="this.classList.toggle('selected');toggleStyle('Price Action')">📉 Price Action</div>
     </div>
-    <div class="ob-btn-row"><button class="btn btn-outline" onclick="obBack(4)">← Back</button><button class="btn btn-primary" style="flex:1" onclick="finishOnboarding()">Launch Journal 🚀</button></div>
+    <div class="ob-btn-row"><button class="btn btn-outline" onclick="obBack(4)">Back</button><button class="btn btn-primary" style="flex:1" onclick="finishOnboarding()">Launch Journal 🚀</button></div>
   </div>
 </div>
 </div>
@@ -474,11 +795,8 @@ body.light .score-btn.selected{background:#fdf3cc}
 <!-- ════ APP ════ -->
 <div id="app">
 <div class="mob-header">
-  <div style="display:flex;align-items:center;gap:8px">
-    <button onclick="goBack()" style="background:none;border:none;color:var(--gold);font-size:13px;cursor:pointer;padding:4px 2px;display:flex;align-items:center;gap:4px;white-space:nowrap">← Home</button>
-    <div><div class="mob-header-title" id="mob-page-title">Dashboard</div><div class="mob-header-name" id="mob-user-name"></div></div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center">
+  <div><div class="mob-header-title" id="mob-page-title">Dashboard</div><div class="mob-header-name" id="mob-user-name"></div></div>
+  <div style="display:flex;gap:10px;align-items:center">
     <span id="mob-theme-btn" onclick="toggleTheme()" style="cursor:pointer;font-size:18px">🌙</span>
     <svg width="26" height="26" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="7" fill="#1a1500"/><ellipse cx="9" cy="17" rx="4" ry="3" fill="#f5c842"/><circle cx="13.5" cy="14.5" r="2.5" fill="#f5c842"/></svg>
   </div>
@@ -491,7 +809,7 @@ body.light .score-btn.selected{background:#fdf3cc}
     <span class="s-logo-sub">Track Every Trade. Master Every Move.</span>
   </div>
   <div class="s-greeting"><strong id="sidebar-greeting">Welcome!</strong><span id="sidebar-profile"></span></div>
-  <div class="back-btn" onclick="goBack()">← Home</div>
+  <div class="back-btn" onclick="goBack()">Home</div>
   <div class="nav-section">Journal</div>
   <div class="nav-item active" onclick="nav(this,'dashboard')"><span class="nav-icon">◈</span> Dashboard</div>
   <div class="nav-item" onclick="nav(this,'log')"><span class="nav-icon">＋</span> Log Trade</div>
@@ -679,9 +997,9 @@ body.light .score-btn.selected{background:#fdf3cc}
 <div id="page-calendar" class="page">
   <h2>P&L Calendar</h2>
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;flex-wrap:wrap">
-    <button class="btn btn-outline btn-sm" onclick="calNav(-1)">← Prev</button>
+    <button class="btn btn-outline btn-sm" onclick="calNav(-1)">Prev</button>
     <div id="cal-month-label" style="font-size:15px;font-weight:600;color:var(--text);min-width:150px;text-align:center"></div>
-    <button class="btn btn-outline btn-sm" onclick="calNav(1)">Next →</button>
+    <button class="btn btn-outline btn-sm" onclick="calNav(1)">Next</button>
     <button class="btn btn-sm btn-primary" onclick="calGoToday()" style="margin-left:auto">Today</button>
   </div>
   <div class="card" style="padding:1rem">
@@ -994,6 +1312,7 @@ body.light .score-btn.selected{background:#fdf3cc}
     <div class="mob-more-item" onclick="mobNav('checklist','Rules Checklist');toggleMore()">✓ Checklist</div>
     <div class="mob-more-item" onclick="mobNav('import','Import Trades');toggleMore()">⬆️ Import</div>
     <div class="mob-more-item" onclick="mobNav('export','Export & Backup');toggleMore()">↓ Export</div>
+    <div class="mob-more-item" onclick="goBack();toggleMore()">🏠 Home</div>
     <div class="mob-more-item login-trigger" onclick="showLogin();toggleMore()">🔑 Sign In</div>
     <div class="mob-more-item logout-trigger" onclick="fbSignOut();toggleMore()" style="display:none;color:var(--danger)">⬡ Sign Out</div>
   </div>
